@@ -19,7 +19,7 @@ export const notify = {
       description,
     }),
 
-  // Notificacion para ia 
+  // Notificación para IA
   ai: (message, description = "") =>
     sileo.action({
       title: message,
