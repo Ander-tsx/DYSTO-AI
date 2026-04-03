@@ -1,8 +1,8 @@
 from rest_framework import generics, filters
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Product
-from .serializers import ProductPublicSerializer
+from .serializers import ProductPublicSerializer, ProductCreateSerializer
 
 class ProductListPublicView(generics.ListAPIView):
 
@@ -31,3 +31,8 @@ class ProductDetailPublicView(generics.RetrieveAPIView):
     serializer_class = ProductPublicSerializer
     permission_classes = [AllowAny]
     lookup_field = 'id'
+
+class ProductCreateView(generics.CreateAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductCreateSerializer
+    permission_classes = [IsAuthenticated]
