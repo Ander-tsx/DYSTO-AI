@@ -2,6 +2,7 @@ import { Outfit, Space_Mono } from "next/font/google";
 import PropTypes from "prop-types";
 import { Toaster } from "react-sileo";
 import "react-sileo/styles.css";
+import Footer from "../components/layout/Footer";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -43,6 +44,7 @@ export default function RootLayout({ children }) {
           }}
         />
         {children}
+        <Footer />
       </body>
     </html>
   );

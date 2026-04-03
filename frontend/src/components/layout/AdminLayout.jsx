@@ -5,7 +5,7 @@ import Button from "../ui/Button";
 const navLinks = [
   { label: "Productos", href: "/admin/productos" },
   { label: "Usuarios", href: "/admin/usuarios" },
-  { label: "Configuracion", href: "/admin/configuracion" },
+  { label: "Perfil", href: "/admin/perfil" },
 ];
 
 export default function AdminLayout({ children }) {
