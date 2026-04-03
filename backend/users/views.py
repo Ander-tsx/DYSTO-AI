@@ -51,20 +51,19 @@ class LoginView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 
-        # Obtener usuario con email
-        email = request.data.get("email")
-        user = User.objects.filter(email=email).first()
+        # Solo adjuntar datos del usuario si la autenticación fue exitosa
+        if response.status_code == status.HTTP_200_OK and "access" in response.data:
+            email = request.data.get("email")
+            user = User.objects.filter(email__iexact=email).first()
 
-        if not user:
-            return response
-
-        response.data["user"] = {
-            "id": user.id,
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "role": user.role,
-        }
+            if user:
+                response.data["user"] = {
+                    "id": user.id,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "role": user.role,
+                }
 
         return response
 
