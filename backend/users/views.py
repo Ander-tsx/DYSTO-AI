@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -135,21 +138,27 @@ class CreateVendorView(generics.CreateAPIView):
     permission_classes = [IsAdmin]
 
     def create(self, request, *args, **kwargs):
-        # Generar una contraseña temporal laol
-        temp_password = get_random_string(length=12)
-        
-        # Copiamos los datos de la petición y asignamos el rol y la contraseña
+        # Asignar rol y una contraseña inicial no utilizable; el vendedor establecerá su propia contraseña
+        # mediante el token de activación de un solo uso que se devuelve a continuación.
         data = request.data.copy()
         data["role"] = User.Role.VENDEDOR
-        data["password"] = temp_password
+        # Provide a random value to pass serializer password validation;
+        # the account is immediately set to an unusable password below.
+        data["password"] = get_random_string(length=20)
         
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        
+        user.set_unusable_password()
+        user.save(update_fields=["password"])
+
+        # Generar token de activación de un solo uso para que el vendedor establezca su contraseña
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
         return Response(
             {
-                "detail": "Vendedor creado exitosamente.",
+                "detail": "Vendedor creado exitosamente. Comparta el token de activación con el usuario para que establezca su contraseña.",
                 "user": {
                     "id": user.id,
                     "email": user.email,
@@ -157,7 +166,10 @@ class CreateVendorView(generics.CreateAPIView):
                     "last_name": user.last_name,
                     "role": user.role,
                 },
-                "temporary_password": temp_password,
+                "activation": {
+                    "uid": uid,
+                    "token": token,
+                },
             },
             status=status.HTTP_201_CREATED,
         )
