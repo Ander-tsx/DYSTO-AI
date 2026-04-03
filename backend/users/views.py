@@ -11,7 +11,12 @@ from rest_framework_simplejwt.exceptions import TokenError
 from .serializers import (
     UserRegisterSerializer,
     UserProfileSerializer,
+    UserListSerializer,
+    UserAdminSerializer,
 )
+from core.permissions import IsAdmin
+from django.utils.crypto import get_random_string
+from rest_framework.exceptions import PermissionDenied
 
 User = get_user_model()
 
@@ -103,3 +108,56 @@ class UserMeView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+# ADMIN: USER LIST
+class UserListView(generics.ListAPIView):
+    queryset = User.objects.all().order_by('-created_at')
+    serializer_class = UserListSerializer
+    permission_classes = [IsAdmin]
+
+
+# ADMIN: USER DETAIL
+class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserAdminSerializer
+    permission_classes = [IsAdmin]
+
+    def perform_destroy(self, instance):
+        if instance == self.request.user:
+            raise PermissionDenied("Un administrador no puede eliminarse a sí mismo.")
+        instance.delete()
+
+
+# ADMIN: CREATE VENDOR
+class CreateVendorView(generics.CreateAPIView):
+    serializer_class = UserAdminSerializer
+    permission_classes = [IsAdmin]
+
+    def create(self, request, *args, **kwargs):
+        # Generar una contraseña temporal laol
+        temp_password = get_random_string(length=12)
+        
+        # Copiamos los datos de la petición y asignamos el rol y la contraseña
+        data = request.data.copy()
+        data["role"] = User.Role.VENDEDOR
+        data["password"] = temp_password
+        
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        return Response(
+            {
+                "detail": "Vendedor creado exitosamente.",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "role": user.role,
+                },
+                "temporary_password": temp_password,
+            },
+            status=status.HTTP_201_CREATED,
+        )
