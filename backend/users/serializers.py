@@ -2,7 +2,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import CustomUser
+from .models import Address, CustomUser
 
 def _validate_password_strength(value: str) -> str:
     #Valida que la contraseña tenga mínimo 8 caracteres y pase las validaciones basex de Django
@@ -164,3 +164,23 @@ class UserListSerializer(serializers.ModelSerializer):
         #Devuelve el nombre completo ysi está vacío retorna el email.
         full = f"{obj.first_name} {obj.last_name}".strip()
         return full if full else obj.email
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    """Serializer para direcciones de envío del usuario."""
+
+    class Meta:
+        model = Address
+        fields = [
+            'id',
+            'user',
+            'calle',
+            'numero',
+            'ciudad',
+            'estado',
+            'codigo_postal',
+            'is_default',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
