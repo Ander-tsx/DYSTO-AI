@@ -103,7 +103,8 @@ export const AuthProvider = ({ children }) => {
       if (typeof window !== 'undefined') {
         localStorage.setItem('refresh_token', refresh);
         localStorage.setItem('user_data', JSON.stringify(userData));
-        document.cookie = `auth_role=${userData.role}; path=/; max-age=604800; SameSite=Lax; Secure`;
+        const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+        document.cookie = `auth_role=${userData.role}; path=/; max-age=604800; SameSite=Lax${secure}`;
       }
 
       // Redirección por rol
@@ -131,7 +132,8 @@ export const AuthProvider = ({ children }) => {
       if (typeof window !== 'undefined') {
         localStorage.setItem('refresh_token', refresh);
         localStorage.setItem('user_data', JSON.stringify(newUser));
-        document.cookie = `auth_role=${newUser.role}; path=/; max-age=604800; SameSite=Lax; Secure`;
+        const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+        document.cookie = `auth_role=${newUser.role}; path=/; max-age=604800; SameSite=Lax${secure}`;
       }
       
       router.push('/marketplace');
