@@ -2,6 +2,8 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
+from django.db import IntegrityError
+from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
@@ -44,10 +46,6 @@ class CartAPITests(APITestCase):
             main_image='https://example.com/agotado.jpg',
         )
 
-    # ------------------------------------------------------------------
-    # GET /api/cart/
-    # ------------------------------------------------------------------
-
     def test_obtener_carrito_sin_autenticar_retorna_401(self):
         """GET /api/cart/ sin autenticación retorna 401."""
         response = self.client.get('/api/cart/')
@@ -61,10 +59,6 @@ class CartAPITests(APITestCase):
         self.assertIn('items', response.data)
         self.assertIn('total', response.data)
 
-    # ------------------------------------------------------------------
-    # POST /api/cart/add/
-    # ------------------------------------------------------------------
-
     def test_agregar_item_sin_autenticar_retorna_401(self):
         """POST /api/cart/add/ sin autenticación retorna 401."""
         response = self.client.post('/api/cart/add/', {'product_id': self.product.id, 'cantidad': 1})
@@ -76,7 +70,7 @@ class CartAPITests(APITestCase):
         response = self.client.post('/api/cart/add/', {'product_id': self.product.id, 'cantidad': 2})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['items']), 1)
-        self.assertEqual(response.data['items'][0]['cantidad'], 2)
+        self.assertEqual(response.data['items']['cantidad'], 2)
 
     def test_agregar_item_sin_product_id_retorna_400(self):
         """POST /api/cart/add/ sin product_id retorna 400."""
@@ -116,10 +110,6 @@ class CartAPITests(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.post('/api/cart/add/', {'product_id': self.product.id, 'cantidad': 99})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    # ------------------------------------------------------------------
-    # PATCH /api/cart/items/<id>/
-    # ------------------------------------------------------------------
 
     def _add_item(self, user, product, cantidad=1):
         """Agrega un item al carrito del usuario y retorna el CartItem."""
@@ -163,10 +153,6 @@ class CartAPITests(APITestCase):
         response = self.client.patch(f'/api/cart/items/{cart_item.id}/', {'cantidad': 5})
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    # ------------------------------------------------------------------
-    # DELETE /api/cart/items/<id>/
-    # ------------------------------------------------------------------
-
     def test_delete_item_exitoso(self):
         """DELETE /api/cart/items/<id>/ elimina el item y retorna el carrito vacío."""
         cart_item = self._add_item(self.user, self.product)
@@ -184,3 +170,65 @@ class CartAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(CartItem.objects.filter(pk=cart_item.id).exists())
 
+
+class CartSignalTests(TestCase):
+    """Pruebas para la señal post_save que crea el carrito automáticamente."""
+
+    def _make_user(self, email):
+        return User.objects.create(
+            email=email,
+            password=make_password('Password123!'),
+        )
+
+    def test_se_crea_carrito_al_registrar_usuario(self):
+        """Al crear un usuario se genera automáticamente un carrito asociado."""
+        user = self._make_user('cart_signal@example.com')
+        self.assertTrue(Cart.objects.filter(user=user).exists())
+
+    def test_carrito_es_unico_por_usuario(self):
+        """No se crea un segundo carrito si el usuario ya tiene uno (get_or_create)."""
+        user = self._make_user('unique_cart@example.com')
+        # Intentar crear manualmente un segundo carrito no debe duplicarlo
+        Cart.objects.get_or_create(user=user)
+        self.assertEqual(Cart.objects.filter(user=user).count(), 1)
+
+    def test_cada_usuario_tiene_su_propio_carrito(self):
+        """Usuarios distintos tienen carritos distintos."""
+        user_a = self._make_user('user_a@example.com')
+        user_b = self._make_user('user_b@example.com')
+        self.assertNotEqual(user_a.cart.pk, user_b.cart.pk)
+
+
+class CartItemUnicidadTests(TestCase):
+    """Pruebas para la restricción de unicidad (cart, product) en CartItem."""
+
+    def setUp(self):
+        self.seller = User.objects.create(
+            email='seller@example.com',
+            password=make_password('Password123!'),
+        )
+        self.category = Category.objects.create(name='Electrónica')
+        self.product = Product.objects.create(
+            seller=self.seller,
+            category=self.category,
+            title='Producto Test',
+            price=Decimal('99.99'),
+            main_image='https://example.com/img.jpg',
+        )
+        self.user = User.objects.create(
+            email='buyer@example.com',
+            password=make_password('Password123!'),
+        )
+        self.cart = self.user.cart
+
+    def test_agregar_producto_al_carrito(self):
+        """Se puede agregar un producto al carrito correctamente."""
+        item = CartItem.objects.create(cart=self.cart, product=self.product, cantidad=2)
+        self.assertEqual(item.cantidad, 2)
+        self.assertEqual(item.subtotal, Decimal('199.98'))
+
+    def test_no_se_puede_duplicar_producto_en_carrito(self):
+        """No se permite agregar el mismo producto dos veces al mismo carrito."""
+        CartItem.objects.create(cart=self.cart, product=self.product)
+        with self.assertRaises(IntegrityError):
+            CartItem.objects.create(cart=self.cart, product=self.product)
