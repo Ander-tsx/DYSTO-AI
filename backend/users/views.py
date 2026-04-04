@@ -1,4 +1,4 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,6 +12,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
 from .serializers import (
+    AddressSerializer,
     UserRegisterSerializer,
     UserProfileSerializer,
     UserListSerializer,
@@ -173,3 +174,20 @@ class CreateVendorView(generics.CreateAPIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+# ADDRESS CRUD
+class AddressViewSet(viewsets.ModelViewSet):
+    """CRUD completo de direcciones de envío del usuario autenticado.
+
+    Filtra siempre por user=request.user para prevenir IDOR.
+    """
+
+    serializer_class = AddressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.request.user.addresses.all()
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
