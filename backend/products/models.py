@@ -39,6 +39,9 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    tags = models.JSONField(default=list, blank=True)
+    units_sold = models.PositiveIntegerField(default=0)
+
     class Meta:
         ordering = ['-created_at']
         verbose_name = 'Product'
