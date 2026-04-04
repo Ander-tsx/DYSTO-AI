@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }) => {
       // Si el refreshToken es robado, el backend puede invalidarlo/blacklisealo.
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user_data');
+      document.cookie = 'auth_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
     }
     router.push('/login');
   }, [router]);
@@ -102,12 +103,43 @@ export const AuthProvider = ({ children }) => {
       if (typeof window !== 'undefined') {
         localStorage.setItem('refresh_token', refresh);
         localStorage.setItem('user_data', JSON.stringify(userData));
+        const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+        document.cookie = `auth_role=${userData.role}; path=/; max-age=604800; SameSite=Lax${secure}`;
       }
 
-      router.push('/');
+      // Redirección por rol
+      if (userData.role === 'admin') router.push('/admin');
+      else if (userData.role === 'vendedor') router.push('/vendor/dashboard');
+      else router.push('/marketplace');
+
       return true;
     } catch (error) {
       console.error("Login Error:", error);
+      throw error;
+    }
+  };
+
+  const register = async (userData) => {
+    try {
+      const response = await api.post('/auth/register/', userData);
+      
+      // Auto-login con los mismos tokens recibidos
+      const { access, refresh, user: newUser } = response.data;
+      
+      setAccessToken(access);
+      setUser(newUser);
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('refresh_token', refresh);
+        localStorage.setItem('user_data', JSON.stringify(newUser));
+        const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+        document.cookie = `auth_role=${newUser.role}; path=/; max-age=604800; SameSite=Lax${secure}`;
+      }
+      
+      router.push('/marketplace');
+      return true;
+    } catch (error) {
+      console.error("Register Error:", error);
       throw error;
     }
   };
@@ -118,6 +150,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!accessToken,
     loading,
     login,
+    register,
     logout: handleLogout,
     refreshToken: handleTokenRefresh,
   };
