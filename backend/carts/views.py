@@ -8,6 +8,11 @@ from .models import Cart, CartItem
 from .serializers import CartSerializer
 
 
+def _cart_with_prefetch(cart_pk):
+    """Retorna el carrito recargado con prefetch_related para evitar N+1."""
+    return Cart.objects.prefetch_related('items__product').get(pk=cart_pk)
+
+
 class CartView(APIView):
     """GET: Retorna el carrito del usuario autenticado con todos sus items."""
 
@@ -15,7 +20,7 @@ class CartView(APIView):
 
     def get(self, request):
         cart, _created = Cart.objects.get_or_create(user=request.user)
-        serializer = CartSerializer(cart)
+        serializer = CartSerializer(_cart_with_prefetch(cart.pk))
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -30,12 +35,28 @@ class AddToCartView(APIView):
 
     def post(self, request):
         cart, _created = Cart.objects.get_or_create(user=request.user)
-        product_id = request.data.get('product_id')
-        cantidad = int(request.data.get('cantidad', 1))
 
-        if not product_id:
+        product_id_raw = request.data.get('product_id')
+        if not product_id_raw:
             return Response(
                 {'detail': 'El campo product_id es requerido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            product_id = int(product_id_raw)
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'El campo product_id debe ser un entero válido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cantidad_raw = request.data.get('cantidad', 1)
+        try:
+            cantidad = int(cantidad_raw)
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'El campo cantidad debe ser un entero positivo.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -75,7 +96,7 @@ class AddToCartView(APIView):
         else:
             CartItem.objects.create(cart=cart, product=product, cantidad=cantidad)
 
-        serializer = CartSerializer(cart)
+        serializer = CartSerializer(_cart_with_prefetch(cart.pk))
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -106,7 +127,14 @@ class CartItemDetailView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cantidad = int(cantidad)
+        try:
+            cantidad = int(cantidad)
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'El campo cantidad debe ser un entero válido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if cantidad < 1:
             return Response(
                 {'detail': 'La cantidad debe ser al menos 1.'},
@@ -126,14 +154,14 @@ class CartItemDetailView(APIView):
         cart_item.cantidad = cantidad
         cart_item.save(update_fields=['cantidad'])
 
-        serializer = CartSerializer(cart_item.cart)
+        serializer = CartSerializer(_cart_with_prefetch(cart_item.cart_id))
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def delete(self, request, item_id):
         """Elimina un item del carrito."""
         cart_item = self._get_cart_item(request, item_id)
-        cart = cart_item.cart
+        cart_pk = cart_item.cart_id
         cart_item.delete()
 
-        serializer = CartSerializer(cart)
+        serializer = CartSerializer(_cart_with_prefetch(cart_pk))
         return Response(serializer.data, status=status.HTTP_200_OK)
