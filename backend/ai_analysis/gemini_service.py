@@ -1,36 +1,32 @@
 import google.generativeai as genai
 import json
 import re
-import requests
 from django.conf import settings
 
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
-def analyze_product_image(image_url: str) -> dict:
+def analyze_product_image(image_bytes: bytes, mime_type: str) -> dict:
     try:
         model = genai.GenerativeModel(
             "gemini-2.5-flash",
             generation_config={"response_mime_type": "application/json"},
         )
 
-        # Descargar la imagen desde la URL de Cloudinary
-        img_response = requests.get(image_url, timeout=15)
-        img_response.raise_for_status()
-
-        # Detectar el mime type
-        content_type = img_response.headers.get("Content-Type", "image/jpeg")
-
-        # Crear el objeto imagen para Gemini
         image_part = {
-            "mime_type": content_type,
-            "data": img_response.content,
+            "mime_type": mime_type,
+            "data": image_bytes,
         }
 
         prompt = """
-        Analiza esta imagen de producto.
+        Analiza esta imagen y realiza dos tareas:
+
+        1. Determina si la imagen contiene personas o animales.
+        2. Si NO contiene personas ni animales, analiza el producto.
 
         Responde SOLO en JSON válido con esta estructura:
         {
+            "contains_people": false,
+            "contains_animals": false,
             "titulo": "",
             "categoria": "",
             "precio_sugerido": 0,
@@ -38,17 +34,32 @@ def analyze_product_image(image_url: str) -> dict:
             "tags": [],
             "es_objeto_valido": true
         }
+
+        Si la imagen contiene personas o animales, deja los campos de producto vacíos
+        y marca es_objeto_valido como false.
         """
 
         response = model.generate_content([prompt, image_part])
 
         text = response.text.strip()
-
-        # Limpiar posibles bloques de código markdown
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
 
         data = json.loads(text)
+
+        if data.get("contains_people"):
+            return {
+                "error": True,
+                "message": "La imagen contiene personas, lo cual no está permitido.",
+            }
+        if data.get("contains_animals"):
+            return {
+                "error": True,
+                "message": "La imagen contiene animales, lo cual no está permitido.",
+            }
+
+        data.pop("contains_people", None)
+        data.pop("contains_animals", None)
 
         return data
 
