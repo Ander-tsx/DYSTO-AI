@@ -29,9 +29,10 @@ class CheckoutSerializer(serializers.Serializer):
     address_id = serializers.IntegerField(required=True)
 
     def validate_address_id(self, value):
-        user = self.context['request'].user
-        try:
-            address = Address.objects.get(id=value, user=user)
-        except Address.DoesNotExist:
+        request = self.context.get('request')
+        if request is None:
+            raise serializers.ValidationError("Se requiere contexto de autenticación para validar la dirección.")
+        user = request.user
+        if not Address.objects.filter(id=value, user=user).exists():
             raise serializers.ValidationError("La dirección no existe o no pertenece al usuario autenticado.")
-        return address
+        return value

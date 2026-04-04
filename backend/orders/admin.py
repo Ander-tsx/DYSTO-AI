@@ -6,6 +6,9 @@ class OrderItemInline(admin.TabularInline):
     extra = 0
     readonly_fields = ('product', 'product_snapshot', 'cantidad', 'precio_unitario')
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('order_number', 'user', 'total', 'status', 'created_at')

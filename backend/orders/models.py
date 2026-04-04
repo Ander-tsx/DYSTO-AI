@@ -8,11 +8,11 @@ class Order(models.Model):
         ('completada', 'Completada'),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='orders')
     address_snapshot = models.JSONField(help_text="Copia de la dirección al momento de comprar")
     total = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completada')
-    order_number = models.CharField(max_length=10, unique=True, editable=False)
+    order_number = models.CharField(max_length=16, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -22,7 +22,7 @@ class Order(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.order_number:
-            self.order_number = uuid.uuid4().hex[:10].upper()
+            self.order_number = uuid.uuid4().hex[:16].upper()
         super().save(*args, **kwargs)
 
     def __str__(self):
