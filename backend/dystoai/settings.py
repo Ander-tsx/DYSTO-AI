@@ -144,3 +144,11 @@ CORS_ALLOWED_ORIGINS = [
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_TYPE_NOSNIFF = True
+
+CLOUDINARY_CONFIG = {
+    "cloud_name": os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    "api_key": os.environ.get('CLOUDINARY_API_KEY'),
+    "api_secret": os.environ.get('CLOUDINARY_API_SECRET'),
+}
+
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
