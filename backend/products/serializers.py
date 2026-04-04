@@ -19,3 +19,24 @@ class ProductPublicSerializer(serializers.ModelSerializer):
             'main_image', 'additional_images', 'metadata', 
             'created_at'
         ]
+
+class ProductCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = [
+            'category',
+            'title',
+            'description',
+            'price',
+            'stock',
+            'main_image',
+            'additional_images',
+            'metadata'
+        ]
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return Product.objects.create(
+            seller=user,
+            **validated_data
+        )
