@@ -1,5 +1,5 @@
 from django.contrib.auth.models import AbstractUser
-from django.db import models
+from django.db import models, transaction
 
 
 class CustomUser(AbstractUser):
@@ -55,15 +55,25 @@ class Address(models.Model):
         verbose_name = 'Dirección'
         verbose_name_plural = 'Direcciones'
         ordering = ['-is_default', '-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user'],
+                condition=models.Q(is_default=True),
+                name='unique_default_address_per_user',
+            )
+        ]
 
     def save(self, *args, **kwargs):
         # Si esta dirección se marca como default, desactivar las demás del usuario
         if self.is_default:
-            Address.objects.filter(
-                user=self.user,
-                is_default=True,
-            ).exclude(pk=self.pk).update(is_default=False)
-        super().save(*args, **kwargs)
+            with transaction.atomic():
+                Address.objects.filter(
+                    user=self.user,
+                    is_default=True,
+                ).exclude(pk=self.pk).update(is_default=False)
+                super().save(*args, **kwargs)
+        else:
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.calle} {self.numero}, {self.ciudad} ({self.user.email})'
