@@ -7,18 +7,20 @@ import { useAuth } from '@/context/AuthContext';
 import { notify } from '@/utils/notify';
 
 export default function LoginPage() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
 
-  // Redirigir si ya está autenticado (aunque técnicamente puede tener rutas distintas, 
-  // usualmente si llega al login se asume que intenta ingresar. Por si acaso redirigimos a /marketplace).
+  // Redirigir si el usuario ya estaba autenticado antes de entrar al login.
+  // Usamos la misma lógica de roles que login() para no pisar su redirect post-login.
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/marketplace');
+    if (isAuthenticated && user) {
+      if (user.role === 'admin') router.push('/admin');
+      else if (user.role === 'vendedor') router.push('/vendor/dashboard');
+      else router.push('/marketplace');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, router]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -102,7 +104,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-8 text-center text-zinc-500 text-sm">
-          ¿No tienes una cuenta cuenta?{' '}
+          ¿No tienes una cuenta?{' '}
           <Link href="/register" className="text-cyan-400 hover:text-cyan-300 transition-colors">
             Crea tu identidad
           </Link>

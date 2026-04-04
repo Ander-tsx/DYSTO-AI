@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }) => {
       if (typeof window !== 'undefined') {
         localStorage.setItem('refresh_token', refresh);
         localStorage.setItem('user_data', JSON.stringify(userData));
-        document.cookie = `auth_role=${userData.role}; path=/; max-age=604800;`; // 7 days
+        document.cookie = `auth_role=${userData.role}; path=/; max-age=604800; SameSite=Lax; Secure`;
       }
 
       // Redirección por rol
@@ -131,7 +131,7 @@ export const AuthProvider = ({ children }) => {
       if (typeof window !== 'undefined') {
         localStorage.setItem('refresh_token', refresh);
         localStorage.setItem('user_data', JSON.stringify(newUser));
-        document.cookie = `auth_role=${newUser.role}; path=/; max-age=604800;`;
+        document.cookie = `auth_role=${newUser.role}; path=/; max-age=604800; SameSite=Lax; Secure`;
       }
       
       router.push('/marketplace');

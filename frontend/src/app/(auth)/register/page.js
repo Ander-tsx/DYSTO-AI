@@ -54,8 +54,7 @@ export default function RegisterPage() {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
-        password: formData.password,
-        password_confirm: formData.confirm_password
+        password: formData.password
       };
       
       await register(registerData);
