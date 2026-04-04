@@ -41,7 +41,6 @@ class Product(models.Model):
 
     tags = models.JSONField(default=list, blank=True)
     units_sold = models.PositiveIntegerField(default=0)
-    is_active = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -51,23 +50,7 @@ class Product(models.Model):
     def __str__(self):
         return f"{self.title} - Stock: {self.stock}"
 
-    def save(self, *args, **kwargs):
-        if self.stock == 0:
-            self.is_active = False
-        elif self.stock > 0:
-            self.is_active = True
-
-        super().save(*args, **kwargs)
-
-class ProductImage(models.Model):
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.CASCADE,
-        related_name='images'
-    )
-    url = models.URLField()
-    is_primary = models.BooleanField(default=False)
-    order = models.PositiveIntegerField(default=0)
-
-    def __str__(self):
-        return f"Image for {self.product.title}"
+    @property
+    def is_active(self):
+        # Un producto se considera activo si tiene stock disponible
+        return self.stock > 0
