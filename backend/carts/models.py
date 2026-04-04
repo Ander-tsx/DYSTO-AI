@@ -41,7 +41,12 @@ class CartItem(models.Model):
     class Meta:
         verbose_name = 'Elemento del carrito'
         verbose_name_plural = 'Elementos del carrito'
-        unique_together = ('cart', 'product')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['cart', 'product'],
+                name='unique_cart_product',
+            ),
+        ]
 
     @property
     def subtotal(self):
