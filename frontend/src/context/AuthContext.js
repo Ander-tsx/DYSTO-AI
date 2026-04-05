@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
       const storedRefresh = localStorage.getItem('refresh_token');
       const storedUser = localStorage.getItem('user_data');
 
-      if (storedRefresh) {
+      if (storedRefresh && !accessToken) {
         try {
           if (storedUser) {
             setUser(JSON.parse(storedUser));
@@ -122,10 +122,10 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await api.post('/auth/register/', userData);
-      
+
       // Auto-login con los mismos tokens recibidos
       const { access, refresh, user: newUser } = response.data;
-      
+
       setAccessToken(access);
       setUser(newUser);
 
@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }) => {
         const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
         document.cookie = `auth_role=${newUser.role}; path=/; max-age=604800; SameSite=Lax${secure}`;
       }
-      
+
       router.push('/marketplace');
       return true;
     } catch (error) {
