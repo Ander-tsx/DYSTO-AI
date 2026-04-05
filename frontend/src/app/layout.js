@@ -1,4 +1,5 @@
 import { Outfit, Space_Mono } from "next/font/google";
+import { AuthProvider } from '@/context/AuthContext';
 import PropTypes from "prop-types";
 import { Toaster } from "react-sileo";
 import "react-sileo/styles.css";
@@ -29,22 +30,24 @@ export default function RootLayout({ children }) {
       <body
         className={`${outfit.variable} ${spaceMono.variable} font-sans bg-background text-text-primary antialiased min-h-screen`}
       >
-        <Toaster
-          theme="dark"
-          position="bottom-right"
-          options={{
-            fill: "#09090b",
-            roundness: 12,
-            duration: 4000,
-            styles: {
-              title: "text-zinc-100",
-              description: "text-zinc-300",
-              badge: "border border-zinc-700 bg-zinc-800 text-zinc-200",
-            },
-          }}
-        />
-        {children}
-        <Footer />
+        <AuthProvider>
+          <Toaster
+            theme="dark"
+            position="bottom-right"
+            options={{
+              fill: "#09090b",
+              roundness: 12,
+              duration: 4000,
+              styles: {
+                title: "text-zinc-100",
+                description: "text-zinc-300",
+                badge: "border border-zinc-700 bg-zinc-800 text-zinc-200",
+              },
+            }}
+          />
+          {children}
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );
