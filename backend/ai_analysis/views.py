@@ -14,11 +14,11 @@ class ImageUploadTestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        file_obj = request.FILES.get("file")
+        file_obj = request.FILES.get("image")
 
         if not file_obj:
             return Response(
-                {"error": "No file provided"},
+                {"error": "No image provided"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
