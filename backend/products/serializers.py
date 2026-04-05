@@ -6,8 +6,21 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'name']
 
-class ProductPublicSerializer(serializers.ModelSerializer):
-    # Campos calculados para facilitarle la vida al frontend
+#(Ligero para listados)
+class ProductListSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    seller_email = serializers.CharField(source='seller.email', read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'title', 'price', 'stock', 
+            'category_name', 'seller_email', 
+            'main_image', 'units_sold', 'is_active', 'created_at'
+        ]
+
+#(Completo con todo el JSON anidado y metadata)
+class ProductDetailSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     seller_email = serializers.CharField(source='seller.email', read_only=True)
 
@@ -17,22 +30,43 @@ class ProductPublicSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'price', 'stock', 
             'category', 'category_name', 'seller_email', 
             'main_image', 'additional_images', 'metadata', 
-            'created_at'
+            'tags', 'units_sold', 'edit_allowed', 'is_active',
+            'created_at', 'updated_at'
         ]
 
+#ProductCreateSerializer
 class ProductCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'category',
-            'title',
-            'description',
-            'price',
-            'stock',
-            'main_image',
-            'additional_images',
-            'metadata'
+            'title', 'description', 'price', 'stock',
+            'category', 'main_image', 'additional_images',
+            'metadata', 'tags', 'units_sold'
         ]
+        read_only_fields = ['units_sold']
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("El precio debe ser mayor a 0.")
+        return value
+
+    def validate_stock(self, value):
+        if value < 0:
+            raise serializers.ValidationError("El stock no puede ser negativo.")
+        return value
+
+    def validate(self, attrs):
+        # Validación de 1 a 5 imágenes en total
+        # main_image siempre cuenta como 1 (ya q es required por el modelo)
+        additional = attrs.get('additional_images', [])
+        if not isinstance(additional, list):
+            raise serializers.ValidationError({"additional_images": "Debe ser una lista de URLs."})
+        
+        # main_image (1) + additional_images (n) <= 5
+        if 1 + len(additional) > 5:
+            raise serializers.ValidationError("Un producto no puede tener más de 5 imágenes en total.")
+        
+        return attrs
 
     def create(self, validated_data):
         user = self.context['request'].user
@@ -40,3 +74,51 @@ class ProductCreateSerializer(serializers.ModelSerializer):
             seller=user,
             **validated_data
         )
+
+#ProductUpdateSerializer
+class ProductUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = [
+            'title', 'description', 'price', 'stock',
+            'category', 'main_image', 'additional_images',
+            'metadata', 'tags'
+        ]
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("El precio debe ser mayor a 0.")
+        return value
+
+    def validate_stock(self, value):
+        if value < 0:
+            raise serializers.ValidationError("El stock no puede ser negativo.")
+        return value
+
+    def validate(self, attrs):
+        additional = attrs.get('additional_images', [])
+        # Solo verificamos límite si viene additional_images en la actualización
+        if 'additional_images' in attrs or 'main_image' in attrs:
+            current_main = attrs.get('main_image', self.instance.main_image)
+            current_add = attrs.get('additional_images', self.instance.additional_images)
+            if not isinstance(current_add, list):
+                raise serializers.ValidationError({"additional_images": "Debe ser una lista."})
+            if 1 + len(current_add) > 5:
+                raise serializers.ValidationError("No puede exceder las 5 imágenes en total.")
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        #Si unidades vendidas > 0, SOLO el stock es mutable.
+        if getattr(instance, 'units_sold', 0) > 0:
+            allowed_fields = {'stock'}
+            attempted_fields = set(validated_data.keys())
+            
+            #Si intentan actualizar algo más allá del stock:
+            invalid = attempted_fields - allowed_fields
+            if invalid:
+                raise serializers.ValidationError(
+                    f"El producto ya tiene ventas. Solo puedes actualizar el stock. Intentaste cambiar: {', '.join(invalid)}"
+                )
+
+        return super().update(instance, validated_data)
