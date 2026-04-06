@@ -125,9 +125,8 @@ export default function NewProductPage() {
                 formData.append('additional_images', img);
             });
 
-            form.tags.split(',').forEach(tag => {
-                formData.append('tags', tag.trim());
-            });
+            const tagsArray = form.tags.split(',').map(t => t.trim()).filter(Boolean);
+            formData.append('tags', JSON.stringify(tagsArray));
 
             images.forEach(img => {
                 formData.append('images', img);

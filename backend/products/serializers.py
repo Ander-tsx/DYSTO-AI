@@ -1,34 +1,28 @@
 from rest_framework import serializers
-from .models import Product, Category
-
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = ['id', 'name']
+from .models import Product
+import json
 
 #(Ligero para listados)
 class ProductListSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
     seller_email = serializers.CharField(source='seller.email', read_only=True)
 
     class Meta:
         model = Product
         fields = [
             'id', 'title', 'price', 'stock', 
-            'category_name', 'seller_email', 
+            'category', 'seller_email', 
             'main_image', 'units_sold', 'is_active', 'created_at'
         ]
 
 #(Completo con todo el JSON anidado y metadata)
 class ProductDetailSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
     seller_email = serializers.CharField(source='seller.email', read_only=True)
 
     class Meta:
         model = Product
         fields = [
             'id', 'title', 'description', 'price', 'stock', 
-            'category', 'category_name', 'seller_email', 
+            'category', 'seller_email', 
             'main_image', 'additional_images', 'metadata', 
             'tags', 'units_sold', 'edit_allowed', 'is_active',
             'created_at', 'updated_at'
@@ -56,6 +50,19 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
+        request = self.context['request']
+        tags = request.data.get('tags')
+        if tags:
+            try:
+                if isinstance(tags, list):
+                    attrs['tags'] = tags
+                elif isinstance(tags, str):
+                    attrs['tags'] = json.loads(tags)
+                else:
+                    attrs['tags'] = []
+            except Exception as e:
+                raise serializers.ValidationError({"tags": "Formato inválido"})
+
         # Validación de 1 a 5 imágenes en total
         # main_image siempre cuenta como 1 (ya q es required por el modelo)
         additional = attrs.get('additional_images', [])
