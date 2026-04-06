@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from carts.models import Cart, CartItem
-from products.models import Category, Product
+from products.models import Product
 
 User = get_user_model()
 
@@ -28,10 +28,9 @@ class CartAPITests(APITestCase):
             password=make_password('Password123!'),
         )
 
-        self.category = Category.objects.create(name='Electrónica')
         self.product = Product.objects.create(
             seller=self.user,
-            category=self.category,
+            category='Electrónica',
             title='Laptop',
             price=Decimal('999.99'),
             stock=10,
@@ -39,7 +38,7 @@ class CartAPITests(APITestCase):
         )
         self.product_no_stock = Product.objects.create(
             seller=self.user,
-            category=self.category,
+            category='Electrónica',
             title='Agotado',
             price=Decimal('50.00'),
             stock=0,
@@ -207,10 +206,9 @@ class CartItemUnicidadTests(TestCase):
             email='seller@example.com',
             password=make_password('Password123!'),
         )
-        self.category = Category.objects.create(name='Electrónica')
         self.product = Product.objects.create(
             seller=self.seller,
-            category=self.category,
+            category='Electrónica',
             title='Producto Test',
             price=Decimal('99.99'),
             main_image='https://example.com/img.jpg',

@@ -1,13 +1,6 @@
 from django.db import models
 from django.conf import settings 
 
-class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
 class Product(models.Model):
     # Usamos el seller como ForeignKey a User para mantener la relación entre productos y vendedores
     seller = models.ForeignKey(
@@ -15,11 +8,7 @@ class Product(models.Model):
         on_delete=models.CASCADE, 
         related_name='products'
     )
-    category = models.ForeignKey(
-        Category, 
-        on_delete=models.RESTRICT, 
-        related_name='products'
-    )
+    category = models.CharField(max_length=100, blank=True, default='')
     
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
