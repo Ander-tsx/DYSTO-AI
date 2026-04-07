@@ -1,6 +1,9 @@
 from django.urls import path
 from rest_framework.views import APIView
 from .views import (
+    ProductPublicListView,
+    ProductPublicDetailView,
+    CategoriesView,
     ProductListPublicView, 
     ProductDetailPublicView, 
     ProductCreateView,
@@ -17,6 +20,11 @@ class ProductRootView(APIView):
         return ProductCreateView.as_view()(request._request, *args, **kwargs)
 
 urlpatterns = [
+    # Marketplace público (MKT-01)
+    path('public/', ProductPublicListView.as_view(), name='product-public-list'),
+    path('public/<int:id>/', ProductPublicDetailView.as_view(), name='product-public-detail'),
+    path('categories/', CategoriesView.as_view(), name='product-categories'),
+
     # Públicas (GET) y Crear (POST)
     path('', ProductRootView.as_view(), name='product-root'),
     
