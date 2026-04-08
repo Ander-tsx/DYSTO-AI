@@ -249,13 +249,14 @@ function UserMenu({ user, onLogout }) {
 // ── Navbar (main export) ──────────────────────────────────────────────────────
 
 export default function Navbar() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, loading } = useAuth();
   const pathname = usePathname();
   const [cartCount, setCartCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Fetch cart count when authenticated
   useEffect(() => {
+    if (loading) return;
     if (!isAuthenticated) { setCartCount(0); return; }
     let cancelled = false;
     api.get('/carts/').then((res) => {

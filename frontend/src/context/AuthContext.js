@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }) => {
 
       const newAccess = response.data.access;
       setAccessToken(newAccess);
+      api.defaults.headers.Authorization = `Bearer ${newAccess}`;
       return newAccess;
     } catch (error) {
       // El refresh ha expirado o es inválido en backend, bay sesión
@@ -98,6 +99,9 @@ export const AuthProvider = ({ children }) => {
       const { access, refresh, user: userData } = response.data;
 
       setAccessToken(access);
+
+      api.defaults.headers.Authorization = `Bearer ${access}`;
+
       setUser(userData);
 
       if (typeof window !== 'undefined') {
@@ -110,7 +114,7 @@ export const AuthProvider = ({ children }) => {
       // Redirección por rol
       if (userData.role === 'admin') router.push('/admin');
       else if (userData.role === 'vendedor') router.push('/vendor/dashboard');
-      else router.push('/marketplace');
+      else router.push('/');
 
       return true;
     } catch (error) {
@@ -136,7 +140,7 @@ export const AuthProvider = ({ children }) => {
         document.cookie = `auth_role=${newUser.role}; path=/; max-age=604800; SameSite=Lax${secure}`;
       }
 
-      router.push('/marketplace');
+      router.push('/');
       return true;
     } catch (error) {
       console.error("Register Error:", error);
