@@ -4,6 +4,7 @@ import PropTypes from "prop-types";
 import { Toaster } from "react-sileo";
 import "react-sileo/styles.css";
 import Footer from "../components/layout/Footer";
+import Navbar from "../components/layout/Navbar";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -45,6 +46,7 @@ export default function RootLayout({ children }) {
               },
             }}
           />
+          <Navbar />
           {children}
           <Footer />
         </AuthProvider>
