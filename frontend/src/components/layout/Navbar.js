@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/axios';
 
@@ -78,31 +78,38 @@ function XIcon({ size = 22 }) {
 // ── SearchBar ─────────────────────────────────────────────────────────────────
 
 function SearchBar({ className = '' }) {
-  const [query, setQuery] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const trimmed = query.trim();
-    if (trimmed) {
-      router.push(`/?search=${encodeURIComponent(trimmed)}`);
-    }
-  };
+  const [query, setQuery] = useState(searchParams.get('search') || '');
+
+  // 🔥 Debounce
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      if (query.trim()) {
+        params.set('search', query);
+      } else {
+        params.delete('search');
+      }
+
+      router.push(`/?${params.toString()}`);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [query]);
 
   return (
-    <form onSubmit={handleSubmit} className={`relative flex items-center ${className}`}>
-      <span className="absolute left-3 text-[--navbar-muted] pointer-events-none">
-        <SearchIcon size={16} />
-      </span>
+    <div className={`relative flex items-center ${className}`}>
       <input
-        id="navbar-search"
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Buscar productos…"
-        className="w-full h-9 pl-9 pr-4 rounded-lg text-sm bg-[--navbar-surface] border border-[--navbar-border] text-[--navbar-text] placeholder:text-[--navbar-muted] focus:outline-none focus:border-[--navbar-accent] focus:ring-1 focus:ring-[--navbar-accent]/40 transition-all duration-200"
+        className="w-full h-9 px-4 rounded-lg text-sm"
       />
-    </form>
+    </div>
   );
 }
 

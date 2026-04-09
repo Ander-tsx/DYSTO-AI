@@ -3,16 +3,26 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import ProductCard from '@/components/product/ProductCard';
+import { useSearchParams } from 'next/navigation';
+import FilterPanel from '@/components/product/FilterPanel';
 
 export default function MarketplacePage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Paginación
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const searchParams = useSearchParams();
+
+  const search = searchParams.get('search') || '';
+  const categoria = searchParams.get('categoria') || '';
+  const precio_min = searchParams.get('precio_min') || '';
+  const precio_max = searchParams.get('precio_max') || '';
+  const orden = searchParams.get('orden') || '';
 
   // Carga inicial y por página
   const fetchProducts = async (pageNumber = 1) => {
@@ -21,9 +31,16 @@ export default function MarketplacePage() {
       else setIsLoadingMore(true);
 
       const response = await api.get('/products/public/', {
-        params: { page: pageNumber }
+        params: {
+          page: pageNumber,
+          search,
+          categoria,
+          precio_min,
+          precio_max,
+          orden
+        }
       });
-      
+
       const newProducts = response.data.results || response.data;
       const nextURL = response.data.next;
 
@@ -32,7 +49,7 @@ export default function MarketplacePage() {
       } else {
         setProducts(prev => [...prev, ...newProducts]);
       }
-      
+
       setHasMore(!!nextURL);
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -44,8 +61,10 @@ export default function MarketplacePage() {
   };
 
   useEffect(() => {
+    setPage(1);
+    setProducts([]);
     fetchProducts(1);
-  }, []);
+  }, [search, categoria, precio_min, precio_max, orden]);
 
   const loadMore = () => {
     if (!isLoadingMore && hasMore) {
@@ -69,7 +88,7 @@ export default function MarketplacePage() {
 
   return (
     <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      
+
       {/* Header Area */}
       <div className="mb-10 text-center sm:text-left">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
@@ -86,41 +105,51 @@ export default function MarketplacePage() {
           {error}
         </div>
       )}
-
-      {loading && !error ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => <SkeletonCard key={i} />)}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-1">
+          <FilterPanel />
         </div>
-      ) : (
-        <>
-          {/* Grid de Productos */}
-          {products.length === 0 && !error ? (
-            <div className="text-center py-20 bg-surface rounded-2xl border border-border">
-              <h3 className="text-2xl font-semibold mb-2">No se encontraron productos</h3>
-              <p className="text-text-muted">El catálogo está vacío o no hay productos activos momento.</p>
+
+        <div className="lg:col-span-3">
+          {/* aquí va tu grid actual */}
+
+
+          {loading && !error ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )}
+            <>
+              {/* Grid de Productos */}
+              {products.length === 0 && !error ? (
+                <div className="text-center py-20 bg-surface rounded-2xl border border-border">
+                  <h3 className="text-2xl font-semibold mb-2">No se encontraron productos</h3>
+                  <p className="text-text-muted">El catálogo está vacío o no hay productos activos momento.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {products.map(product => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              )}
 
-          {/* Botón Cargar Más */}
-          {hasMore && products.length > 0 && (
-            <div className="mt-12 flex justify-center">
-              <button
-                onClick={loadMore}
-                disabled={isLoadingMore}
-                className="bg-surface border border-border text-text hover:border-accent hover:text-accent font-semibold py-3 px-8 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-wait"
-              >
-                {isLoadingMore ? "Cargando..." : "Cargar más productos"}
-              </button>
-            </div>
+              {/* Botón Cargar Más */}
+              {hasMore && products.length > 0 && (
+                <div className="mt-12 flex justify-center">
+                  <button
+                    onClick={loadMore}
+                    disabled={isLoadingMore}
+                    className="bg-surface border border-border text-text hover:border-accent hover:text-accent font-semibold py-3 px-8 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-wait"
+                  >
+                    {isLoadingMore ? "Cargando..." : "Cargar más productos"}
+                  </button>
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+      </div>
     </main>
   );
 }
