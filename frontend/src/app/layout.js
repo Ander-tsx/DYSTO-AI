@@ -6,6 +6,7 @@ import "react-sileo/styles.css";
 import Footer from "../components/layout/Footer";
 import Navbar from "../components/layout/Navbar";
 import "./globals.css";
+import { CartProvider } from '@/context/CartContext';
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -32,23 +33,25 @@ export default function RootLayout({ children }) {
         className={`${outfit.variable} ${spaceMono.variable} font-sans bg-background text-text-primary antialiased min-h-screen`}
       >
         <AuthProvider>
-          <Toaster
-            theme="dark"
-            position="bottom-right"
-            options={{
-              fill: "#09090b",
-              roundness: 12,
-              duration: 4000,
-              styles: {
-                title: "text-zinc-100",
-                description: "text-zinc-300",
-                badge: "border border-zinc-700 bg-zinc-800 text-zinc-200",
-              },
-            }}
-          />
-          <Navbar />
-          {children}
-          <Footer />
+          <CartProvider>
+            <Toaster
+              theme="dark"
+              position="bottom-right"
+              options={{
+                fill: "#09090b",
+                roundness: 12,
+                duration: 4000,
+                styles: {
+                  title: "text-zinc-100",
+                  description: "text-zinc-300",
+                  badge: "border border-zinc-700 bg-zinc-800 text-zinc-200",
+                },
+              }}
+            />
+            <Navbar />
+            {children}
+            <Footer />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

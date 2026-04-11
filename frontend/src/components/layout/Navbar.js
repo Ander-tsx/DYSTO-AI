@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import api from '@/lib/axios';
+import { useCart } from '@/context/CartContext';
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -251,23 +251,8 @@ function UserMenu({ user, onLogout }) {
 export default function Navbar() {
   const { user, isAuthenticated, logout, loading } = useAuth();
   const pathname = usePathname();
-  const [cartCount, setCartCount] = useState(0);
+  const { cartCount } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  // Fetch cart count when authenticated
-  useEffect(() => {
-    if (loading) return;
-    if (!isAuthenticated) { setCartCount(0); return; }
-    let cancelled = false;
-    api.get('/carts/').then((res) => {
-      if (!cancelled) {
-        const items = res.data?.items || [];
-        const total = items.reduce((acc, item) => acc + (item.cantidad || 0), 0);
-        setCartCount(total);
-      }
-    }).catch(() => null);
-    return () => { cancelled = true; };
-  }, [isAuthenticated, pathname]);
 
   // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
