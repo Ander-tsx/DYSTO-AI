@@ -4,9 +4,11 @@ import { useCart } from '@/context/CartContext';
 import api from '@/lib/axios';
 import { useState } from 'react';
 import AddressSelector from '@/components/orders/AddressSelector';
+import { useRouter } from 'next/navigation';
 
 export default function CheckoutPage() {
     const { cartItems, cartTotal, clearCart } = useCart();
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [addressId, setAddressId] = useState(null);
 
@@ -18,11 +20,19 @@ export default function CheckoutPage() {
 
         setLoading(true);
         try {
-            await api.post('/orders/checkout/', {
+            const res = await api.post('/orders/checkout/', {
                 address_id: addressId
             });
+
             clearCart();
-            alert('Compra exitosa');
+
+            const orderNumber = res.data?.order_number;
+            if (orderNumber) {
+                router.push(`/orders/${orderNumber}?from=checkout`);
+                return;
+            }
+
+            router.push('/orders');
         } catch (err) {
             alert(err.response?.data?.detail || 'Error en checkout');
         } finally {
