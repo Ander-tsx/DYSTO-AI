@@ -65,7 +65,7 @@ export default function NewProductPage() {
         setLoadingAI(true);
 
         try {
-            const res = await api.post('/ai/upload-test/', formData, {
+            const res = await api.post('/ai/analyze/', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -92,7 +92,11 @@ export default function NewProductPage() {
             notify.success("IA completó el formulario ✨");
 
         } catch (err) {
-            notify.error("Error analizando imagen");
+            if (err.response?.status === 429) {
+                notify.error("Límite de análisis alcanzado (10 por hora)");
+            } else {
+                notify.error("Error analizando imagen");
+            }
         } finally {
             setLoadingAI(false);
         }

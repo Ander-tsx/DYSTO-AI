@@ -1,19 +1,33 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from core.permissions import IsVendedorOrAdmin
 from PIL import Image
 
 from .cloudinary_service import upload_image
 from .gemini_service import analyze_product_image
+from django.core.cache import cache
 
 ALLOWED_FORMATS = ["JPEG", "PNG"]
 MAX_SIZE_MB = 10
 
-class ImageUploadTestView(APIView):
-    permission_classes = [IsAuthenticated]
+class AnalyzeImageView(APIView):
+    permission_classes = [IsVendedorOrAdmin]
 
     def post(self, request):
+        user = request.user
+        cache_key = f"ai_analysis_{user.id}"
+
+        request_count = cache.get(cache_key, 0)
+
+        if request_count >= 10:
+            return Response(
+                {"error": "Rate limit excedido (10 análisis por hora)"},
+                status=429
+            )
+
+        cache.set(cache_key, request_count + 1, timeout=3600)
+
         file_obj = request.FILES.get("image")
 
         if not file_obj:

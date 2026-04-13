@@ -152,3 +152,10 @@ CLOUDINARY_CONFIG = {
 }
 
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "ai-analysis-cache",
+    }
+}
