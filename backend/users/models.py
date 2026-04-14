@@ -1,7 +1,10 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
 
+from logbook.decorators import audit_log
 
+
+@audit_log
 class CustomUser(AbstractUser):
 
     class Role(models.TextChoices):
@@ -33,6 +36,7 @@ class CustomUser(AbstractUser):
         return f'{self.email} ({self.get_role_display()})'
 
 
+@audit_log
 class Address(models.Model):
     # Dirección de envío asociada a un usuario.
 

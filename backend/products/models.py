@@ -1,7 +1,10 @@
 from django.db import models
 from django.conf import settings
 
+from logbook.decorators import audit_log
 
+
+@audit_log
 class Product(models.Model):
     # Usamos seller como ForeignKey a User para mantener la relación entre productos y vendedores
     seller = models.ForeignKey(

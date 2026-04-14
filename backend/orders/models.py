@@ -2,8 +2,9 @@ import uuid
 from django.db import models
 from django.conf import settings
 from products.models import Product
+from logbook.decorators import audit_log
 
-
+@audit_log
 class Order(models.Model):
 
     class Status(models.TextChoices):
@@ -38,6 +39,7 @@ class Order(models.Model):
         return f"Pedido {self.order_number} - {self.user.email}"
 
 
+@audit_log
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(
