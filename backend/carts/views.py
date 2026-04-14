@@ -1,3 +1,4 @@
+from products.models import Product
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
@@ -9,12 +10,12 @@ from .serializers import CartSerializer
 
 
 def _cart_with_prefetch(cart_pk):
-    """Retorna el carrito recargado con prefetch_related para evitar N+1."""
+    # Retorna el carrito recargado con prefetch_related para evitar N+1
     return Cart.objects.prefetch_related('items__product').get(pk=cart_pk)
 
 
 class CartView(APIView):
-    """GET: Retorna el carrito del usuario autenticado con todos sus items."""
+    # GET: Retorna el carrito del usuario autenticado con todos sus items.
 
     permission_classes = [IsAuthenticated]
 
@@ -25,11 +26,9 @@ class CartView(APIView):
 
 
 class AddToCartView(APIView):
-    """POST: Añade un producto al carrito o incrementa su cantidad.
-
-    Body esperado: { "product_id": int, "cantidad": int (opcional, default 1) }
-    Valida stock disponible antes de agregar.
-    """
+    # POST: Añade un producto al carrito o incrementa su cantidad.
+    # Body esperado: { "product_id": int, "quantity": int (opcional, default 1) }
+    # Valida stock disponible antes de agregar.
 
     permission_classes = [IsAuthenticated]
 
@@ -51,23 +50,29 @@ class AddToCartView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cantidad_raw = request.data.get('cantidad', 1)
+        quantity_raw = request.data.get('quantity', 1)
         try:
-            cantidad = int(cantidad_raw)
+            quantity = int(quantity_raw)
         except (TypeError, ValueError):
             return Response(
-                {'detail': 'El campo cantidad debe ser un entero positivo.'},
+                {'detail': 'El campo quantity debe ser un entero positivo.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if cantidad < 1:
+        if quantity < 1:
             return Response(
                 {'detail': 'La cantidad debe ser al menos 1.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        from products.models import Product
         product = get_object_or_404(Product, pk=product_id)
+
+        # Verificar que el vendedor no intente comprar su propio producto
+        if product.seller == request.user:
+            return Response(
+                {'detail': 'No puedes comprar tu propio producto.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         # Verificar que el producto está activo (tiene stock)
         if not product.is_active:
@@ -78,38 +83,38 @@ class AddToCartView(APIView):
 
         # Buscar si ya existe en el carrito
         cart_item = CartItem.objects.filter(cart=cart, product=product).first()
-        nueva_cantidad = cantidad if cart_item is None else cart_item.cantidad + cantidad
+        new_quantity = quantity if cart_item is None else cart_item.quantity + quantity
 
         # Validar stock disponible
-        if nueva_cantidad > product.stock:
+        if new_quantity > product.stock:
             return Response(
                 {
-                    'detail': f'Stock insuficiente. Disponible: {product.stock}, '
-                              f'solicitado: {nueva_cantidad}.',
+                    'detail': (
+                        f'Stock insuficiente. Disponible: {product.stock}, '
+                        f'solicitado: {new_quantity}.'
+                    ),
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if cart_item:
-            cart_item.cantidad = nueva_cantidad
-            cart_item.save(update_fields=['cantidad'])
+            cart_item.quantity = new_quantity
+            cart_item.save(update_fields=['quantity'])
         else:
-            CartItem.objects.create(cart=cart, product=product, cantidad=cantidad)
+            CartItem.objects.create(cart=cart, product=product, quantity=quantity)
 
         serializer = CartSerializer(_cart_with_prefetch(cart.pk))
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CartItemDetailView(APIView):
-    """PATCH: Actualiza cantidad de un item. DELETE: Elimina un item.
-
-    Filtra siempre por cart__user=request.user para prevenir IDOR.
-    """
+    # PATCH: Actualiza cantidad de un item. DELETE: Elimina un item.
+    # Filtra siempre por cart__user=request.user para prevenir IDOR.
 
     permission_classes = [IsAuthenticated]
 
     def _get_cart_item(self, request, item_id):
-        """Obtiene el cart item verificando que pertenece al usuario."""
+        # Obtiene el cart item verificando que pertenece al usuario
         return get_object_or_404(
             CartItem,
             pk=item_id,
@@ -117,48 +122,50 @@ class CartItemDetailView(APIView):
         )
 
     def patch(self, request, item_id):
-        """Actualiza la cantidad de un item. Valida stock disponible."""
+        # Actualiza la cantidad de un item. Valida stock disponible.
         cart_item = self._get_cart_item(request, item_id)
 
-        cantidad = request.data.get('cantidad')
-        if cantidad is None:
+        quantity = request.data.get('quantity')
+        if quantity is None:
             return Response(
-                {'detail': 'El campo cantidad es requerido.'},
+                {'detail': 'El campo quantity es requerido.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
-            cantidad = int(cantidad)
+            quantity = int(quantity)
         except (TypeError, ValueError):
             return Response(
-                {'detail': 'El campo cantidad debe ser un entero válido.'},
+                {'detail': 'El campo quantity debe ser un entero válido.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if cantidad < 1:
+        if quantity < 1:
             return Response(
                 {'detail': 'La cantidad debe ser al menos 1.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Validar stock disponible
-        if cantidad > cart_item.product.stock:
+        if quantity > cart_item.product.stock:
             return Response(
                 {
-                    'detail': f'Stock insuficiente. Disponible: {cart_item.product.stock}, '
-                              f'solicitado: {cantidad}.',
+                    'detail': (
+                        f'Stock insuficiente. Disponible: {cart_item.product.stock}, '
+                        f'solicitado: {quantity}.'
+                    ),
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cart_item.cantidad = cantidad
-        cart_item.save(update_fields=['cantidad'])
+        cart_item.quantity = quantity
+        cart_item.save(update_fields=['quantity'])
 
         serializer = CartSerializer(_cart_with_prefetch(cart_item.cart_id))
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def delete(self, request, item_id):
-        """Elimina un item del carrito."""
+        # Elimina un item del carrito
         cart_item = self._get_cart_item(request, item_id)
         cart_pk = cart_item.cart_id
         cart_item.delete()

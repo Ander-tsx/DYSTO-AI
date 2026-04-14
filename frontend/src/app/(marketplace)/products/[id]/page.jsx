@@ -5,7 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
-import ImageGallery from '@/components/product/ImageGallery';
+import { useCart } from '@/context/CartContext';
+import ImageGallery from '@/components/product/ImageGallery.jsx';
+
 
 // ── Mini Icons ─────────────────────────────────────────────────────────────────
 
@@ -58,8 +60,8 @@ function ShieldOffIcon({ size = 22 }) {
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
       viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+      <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
+      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
     </svg>
   );
 }
@@ -97,6 +99,7 @@ export default function ProductDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const { addItem } = useCart();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -113,7 +116,8 @@ export default function ProductDetailPage() {
     setLoading(true);
     setError(null);
 
-    api.get(`/products/public/${id}/`)
+    // URL corregida: /products/public/{id}/ → /products/{id}/ (post-refactoring)
+    api.get(`/products/${id}/`)
       .then((res) => setProduct(res.data))
       .catch((err) => {
         if (err.response?.status === 404) {
@@ -133,18 +137,20 @@ export default function ProductDetailPage() {
     setAdding(true);
     setAddError(null);
     setAddSuccess(false);
-    try {
-      await api.post('/carts/add/', { product_id: product.id, cantidad: quantity });
+    const result = await addItem(product.id, quantity);
+    if (result.success) {
       setAddSuccess(true);
-      setTimeout(() => setAddSuccess(false), 3000);
-    } catch (err) {
-      const msg = err.response?.data?.detail || 'Error al agregar al carrito.';
-      setAddError(msg);
+      // Redirigir al carrito ya actualizado
+      setTimeout(() => router.push('/cart'), 400);
+    } else {
+      setAddError(result.message);
       setTimeout(() => setAddError(null), 4000);
-    } finally {
-      setAdding(false);
     }
+    setAdding(false);
   };
+
+  // Si el usuario autenticado es el vendedor del producto
+  const isOwnProduct = isAuthenticated && user?.email === product?.seller_email;
 
   // Stock / availability
   const isActive = product?.is_active;
@@ -154,10 +160,10 @@ export default function ProductDetailPage() {
 
   const formattedPrice = product
     ? Number(product.price).toLocaleString('es-MX', {
-        style: 'currency',
-        currency: 'MXN',
-        minimumFractionDigits: 2,
-      })
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 2,
+    })
     : '';
 
   return (
@@ -368,7 +374,19 @@ export default function ProductDetailPage() {
 
                 {/* Quantity selector + Add to Cart */}
                 {isAuthenticated ? (
-                  isActive ? (
+                  isOwnProduct ? (
+                    /* El vendedor ve su propio producto */
+                    <div
+                      className="flex items-center gap-3 px-5 py-3.5 rounded-xl text-sm font-semibold"
+                      style={{ background: 'rgba(224,255,79,0.06)', border: '1px solid rgba(224,255,79,0.15)', color: '#e0ff4f' }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+                        <circle cx="12" cy="12" r="2"/>
+                      </svg>
+                      Este es tu producto
+                    </div>
+                  ) : isActive ? (
                     <div className="flex flex-col gap-3">
                       {/* Qty selector */}
                       <div className="flex items-center gap-3">

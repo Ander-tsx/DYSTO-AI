@@ -5,7 +5,7 @@ from products.models import Product
 
 
 class Cart(models.Model):
-    """Carrito de compras asociado 1-a-1 con el usuario."""
+    # Carrito de compras asociado 1-a-1 con el usuario.
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -24,7 +24,7 @@ class Cart(models.Model):
 
 
 class CartItem(models.Model):
-    """Elemento individual dentro de un carrito."""
+    # Elemento individual dentro de un carrito.
 
     cart = models.ForeignKey(
         Cart,
@@ -36,7 +36,7 @@ class CartItem(models.Model):
         on_delete=models.CASCADE,
         related_name='cart_items',
     )
-    cantidad = models.PositiveIntegerField(default=1)
+    quantity = models.PositiveIntegerField(default=1)
 
     class Meta:
         verbose_name = 'Elemento del carrito'
@@ -50,8 +50,8 @@ class CartItem(models.Model):
 
     @property
     def subtotal(self):
-        """Calcula el subtotal: precio del producto * cantidad."""
-        return self.product.price * self.cantidad
+        # Calcula el subtotal: precio del producto * cantidad
+        return self.product.price * self.quantity
 
     def __str__(self):
-        return f'{self.product.title} x{self.cantidad} (${self.subtotal})'
+        return f'{self.product.title} x{self.quantity} (${self.subtotal})'

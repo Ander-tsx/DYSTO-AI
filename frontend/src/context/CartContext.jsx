@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '@/lib/axios';
-import { useAuth } from './AuthContext';
+import { useAuth } from './AuthContext.jsx';
 
 const CartContext = createContext();
 
@@ -19,7 +19,7 @@ export const CartProvider = ({ children }) => {
         setCartItems(items);
         setCartTotal(Number(data.total || 0));
 
-    const count = items.reduce((acc, item) => acc + item.quantity, 0);
+        const count = items.reduce((acc, item) => acc + item.quantity, 0);
         setCartCount(count);
     };
 
@@ -39,11 +39,10 @@ export const CartProvider = ({ children }) => {
                 quantity,
             });
             processCart(res.data);
-            return true;
+            return { success: true };
         } catch (err) {
-            console.error(err);
-            alert(err.response?.data?.detail || 'Error al agregar');
-            return false;
+            const message = err.response?.data?.detail || 'Error al agregar al carrito.';
+            return { success: false, message };
         }
     };
 

@@ -14,9 +14,9 @@ export function middleware(request) {
   const roleCookie = request.cookies.get('auth_role');
   const role = roleCookie?.value;
 
-  // Proteger /vendor/* -> requiere rol 'vendedor'
+  // Proteger /vendor/* -> requiere rol 'vendor'
   if (pathname.startsWith('/vendor')) {
-    if (role !== 'vendedor') {
+    if (role !== 'vendor') {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }

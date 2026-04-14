@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
-import OrderSummaryCard from '@/components/orders/OrderSummaryCard';
+import OrderSummaryCard from '@/components/orders/OrderSummaryCard.jsx';
+
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);

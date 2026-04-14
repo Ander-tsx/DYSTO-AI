@@ -5,7 +5,10 @@ from django.conf import settings
 
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
-def analyze_product_image(image_bytes: bytes, mime_type: str) -> dict:
+
+def analyze_product_image(image_bytes, mime_type):
+    # Analiza una imagen con Gemini para validar contenido y extraer datos del producto.
+    # Retorna un dict con los datos del producto o un dict de error.
     try:
         model = genai.GenerativeModel(
             "gemini-2.5-flash",
@@ -27,16 +30,16 @@ def analyze_product_image(image_bytes: bytes, mime_type: str) -> dict:
         {
             "contains_people": false,
             "contains_animals": false,
-            "titulo": "",
-            "categoria": "",
-            "precio_sugerido": 0,
-            "descripcion": "",
+            "title": "",
+            "category": "",
+            "suggested_price": 0,
+            "description": "",
             "tags": [],
-            "es_objeto_valido": true
+            "is_valid_object": true
         }
 
         Si la imagen contiene personas o animales, deja los campos de producto vacíos
-        y marca es_objeto_valido como false.
+        y marca is_valid_object como false.
         """
 
         response = model.generate_content([prompt, image_part])

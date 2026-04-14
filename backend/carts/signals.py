@@ -5,7 +5,7 @@ from django.dispatch import receiver
 
 @receiver(post_save, sender=get_user_model())
 def create_cart_for_new_user(sender, instance, created, **kwargs):
-    """Al crear un nuevo usuario, se crea automáticamente su carrito."""
+    # Al crear un nuevo usuario, se crea automáticamente su carrito asociado.
     if created:
         from carts.models import Cart
         Cart.objects.get_or_create(user=instance)
