@@ -1,18 +1,22 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from core.permissions import IsVendedorOrAdmin
+from rest_framework.permissions import IsAuthenticated
 from PIL import Image
+from django.core.cache import cache
 
+from core.permissions import IsVendorOrAdmin
 from .cloudinary_service import upload_image
 from .gemini_service import analyze_product_image
-from django.core.cache import cache
 
 ALLOWED_FORMATS = ["JPEG", "PNG"]
 MAX_SIZE_MB = 10
 
+
 class AnalyzeImageView(APIView):
-    permission_classes = [IsVendedorOrAdmin]
+    # Recibe una imagen, la valida con Gemini y la sube a Cloudinary si es apta.
+    # Rate limit: 10 análisis por hora por usuario.
+    permission_classes = [IsVendorOrAdmin]
 
     def post(self, request):
         user = request.user
@@ -22,8 +26,8 @@ class AnalyzeImageView(APIView):
 
         if request_count >= 10:
             return Response(
-                {"error": "Rate limit excedido (10 análisis por hora)"},
-                status=429
+                {"detail": "Límite de análisis excedido (10 análisis por hora)."},
+                status=429,
             )
 
         cache.set(cache_key, request_count + 1, timeout=3600)
@@ -32,16 +36,16 @@ class AnalyzeImageView(APIView):
 
         if not file_obj:
             return Response(
-                {"error": "No image provided"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "No se proporcionó ninguna imagen."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Validar tamaño (max 10MB)
         file_size_mb = file_obj.size / (1024 * 1024)
         if file_size_mb > MAX_SIZE_MB:
             return Response(
-                {"error": f"El archivo excede el límite de {MAX_SIZE_MB}MB."},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": f"El archivo excede el límite de {MAX_SIZE_MB}MB."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Validar formato real con Pillow (JPG/PNG)
@@ -50,14 +54,14 @@ class AnalyzeImageView(APIView):
             image_format = img.format
         except Exception:
             return Response(
-                {"error": "El archivo no es una imagen válida."},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "El archivo no es una imagen válida."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if image_format not in ALLOWED_FORMATS:
             return Response(
-                {"error": "Solo se permiten imágenes JPG y PNG."},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Solo se permiten imágenes JPG y PNG."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Leer bytes para Gemini
@@ -71,8 +75,8 @@ class AnalyzeImageView(APIView):
         # Si Gemini rechazó la imagen (personas/animales)
         if analysis.get("error"):
             return Response(
-                {"error": analysis.get("message", "Imagen no permitida.")},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": analysis.get("message", "Imagen no permitida.")},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
@@ -83,13 +87,13 @@ class AnalyzeImageView(APIView):
             return Response(
                 {
                     "image_url": image_url,
-                    "analysis": analysis
+                    "analysis": analysis,
                 },
-                status=status.HTTP_200_OK
+                status=status.HTTP_200_OK,
             )
 
         except Exception as e:
             return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
             )

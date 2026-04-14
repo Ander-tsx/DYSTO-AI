@@ -10,6 +10,8 @@ from django.utils.http import urlsafe_base64_encode
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from django.utils.crypto import get_random_string
+from rest_framework.exceptions import PermissionDenied
 
 from .serializers import (
     AddressSerializer,
@@ -19,13 +21,11 @@ from .serializers import (
     UserAdminSerializer,
 )
 from core.permissions import IsAdmin
-from django.utils.crypto import get_random_string
-from rest_framework.exceptions import PermissionDenied
 
 User = get_user_model()
 
 
-# REGISTER
+# REGISTRO
 class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegisterSerializer
     permission_classes = [AllowAny]
@@ -35,7 +35,7 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Generate tokens
+        # Generar tokens JWT para el nuevo usuario
         refresh = RefreshToken.for_user(user)
 
         return Response(
@@ -86,7 +86,7 @@ class LogoutView(APIView):
 
         if not refresh_token:
             return Response(
-                {"detail": "Refresh token is required."},
+                {"detail": "El token de refresco es requerido."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -95,17 +95,17 @@ class LogoutView(APIView):
             token.blacklist()
         except TokenError:
             return Response(
-                {"detail": "Invalid token."},
+                {"detail": "El token proporcionado es inválido."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         return Response(
-            {"detail": "Logout successful."},
+            {"detail": "Sesión cerrada correctamente."},
             status=status.HTTP_200_OK,
         )
 
 
-# USER ME
+# PERFIL DEL USUARIO AUTENTICADO
 class UserMeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
@@ -114,14 +114,14 @@ class UserMeView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
-# ADMIN: USER LIST
+# ADMIN: LISTA DE USUARIOS
 class UserListView(generics.ListAPIView):
     queryset = User.objects.all().order_by('-created_at')
     serializer_class = UserListSerializer
     permission_classes = [IsAdmin]
 
 
-# ADMIN: USER DETAIL
+# ADMIN: DETALLE / EDICIÓN / ELIMINACIÓN DE USUARIO
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserAdminSerializer
@@ -133,20 +133,20 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.delete()
 
 
-# ADMIN: CREATE VENDOR
+# ADMIN: CREAR VENDEDOR
 class CreateVendorView(generics.CreateAPIView):
     serializer_class = UserAdminSerializer
     permission_classes = [IsAdmin]
 
     def create(self, request, *args, **kwargs):
-        # Asignar rol y una contraseña inicial no utilizable; el vendedor establecerá su propia contraseña
-        # mediante el token de activación de un solo uso que se devuelve a continuación.
+        # Asignar rol vendor y una contraseña aleatoria no utilizable;
+        # el vendedor establecerá su propia contraseña via el token de activación.
         data = request.data.copy()
-        data["role"] = User.Role.VENDEDOR
-        # Provide a random value to pass serializer password validation;
-        # the account is immediately set to an unusable password below.
+        data["role"] = User.Role.VENDOR
+        # Se provee un valor aleatorio para pasar la validación del serializer;
+        # inmediatamente después se marca como contraseña no utilizable.
         data["password"] = get_random_string(length=20)
-        
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -176,12 +176,10 @@ class CreateVendorView(generics.CreateAPIView):
         )
 
 
-# ADDRESS CRUD
+# CRUD DE DIRECCIONES DEL USUARIO AUTENTICADO
 class AddressViewSet(viewsets.ModelViewSet):
-    """CRUD completo de direcciones de envío del usuario autenticado.
-
-    Filtra siempre por user=request.user para prevenir IDOR.
-    """
+    # CRUD completo de direcciones de envío del usuario autenticado.
+    # Filtra siempre por user=request.user para prevenir IDOR.
 
     serializer_class = AddressSerializer
     permission_classes = [IsAuthenticated]

@@ -7,7 +7,7 @@ from .models import Cart, CartItem
 
 
 class CartItemProductSerializer(serializers.ModelSerializer):
-    """Datos ligeros del producto dentro de un item del carrito."""
+    # Datos ligeros del producto dentro de un item del carrito.
 
     class Meta:
         model = Product
@@ -16,7 +16,7 @@ class CartItemProductSerializer(serializers.ModelSerializer):
 
 
 class CartItemSerializer(serializers.ModelSerializer):
-    """Serializer para cada elemento del carrito con datos del producto."""
+    # Serializer para cada elemento del carrito con datos del producto.
 
     product = CartItemProductSerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
@@ -28,16 +28,16 @@ class CartItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CartItem
-        fields = ['id', 'product', 'product_id', 'cantidad', 'subtotal']
+        fields = ['id', 'product', 'product_id', 'quantity', 'subtotal']
         read_only_fields = ['id', 'subtotal']
 
     def get_subtotal(self, obj):
-        """Retorna el subtotal como string con 2 decimales."""
+        # Retorna el subtotal como string con 2 decimales
         return str(obj.subtotal)
 
 
 class CartSerializer(serializers.ModelSerializer):
-    """Serializer del carrito completo con items anidados y total."""
+    # Serializer del carrito completo con items anidados y total.
 
     items = CartItemSerializer(many=True, read_only=True)
     total = serializers.SerializerMethodField()
@@ -48,7 +48,7 @@ class CartSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_total(self, obj):
-        """Suma todos los subtotales de los items del carrito."""
+        # Suma todos los subtotales de los items del carrito
         total = sum(
             (item.subtotal for item in obj.items.all()),
             Decimal('0.00'),

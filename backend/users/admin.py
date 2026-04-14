@@ -26,7 +26,7 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
-    list_display = ('user', 'calle', 'numero', 'ciudad', 'estado', 'codigo_postal', 'is_default')
-    list_filter = ('is_default', 'estado', 'ciudad')
-    search_fields = ('calle', 'ciudad', 'estado', 'codigo_postal', 'user__email')
+    list_display = ('user', 'street', 'street_number', 'city', 'state', 'postal_code', 'is_default')
+    list_filter = ('is_default', 'state', 'city')
+    search_fields = ('street', 'city', 'state', 'postal_code', 'user__email')
     raw_id_fields = ('user',)

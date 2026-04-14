@@ -4,8 +4,9 @@ from rest_framework import serializers
 
 from .models import Address, CustomUser
 
-def _validate_password_strength(value: str) -> str:
-    #Valida que la contraseña tenga mínimo 8 caracteres y pase las validaciones basex de Django
+
+def _validate_password_strength(value):
+    # Valida que la contraseña tenga mínimo 8 caracteres y pase las validaciones base de Django
     if len(value) < 8:
         raise serializers.ValidationError(
             "La contraseña debe tener al menos 8 caracteres."
@@ -16,12 +17,13 @@ def _validate_password_strength(value: str) -> str:
         raise serializers.ValidationError(list(exc.messages)) from exc
     return value
 
+
 class UserRegisterSerializer(serializers.ModelSerializer):
-    #Registro público de nuevos usuarios.
-    #Valida email único (unicidad reforzada en validate_email).
-    #Contraseña mínimo 8 chars; se almacena hasheada con make_password.
-    #El rol siempre se fuerza a cliente: no es editable en el registro.
-    #password es write-only y nunca se devuelve en la respuesta.
+    # Registro público de nuevos usuarios.
+    # Valida email único (unicidad reforzada en validate_email).
+    # Contraseña mínimo 8 chars; se almacena hasheada con make_password.
+    # El rol siempre se fuerza a client: no es editable en el registro.
+    # password es write-only y nunca se devuelve en la respuesta.
 
     password = serializers.CharField(
         write_only=True,
@@ -41,8 +43,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id"]
 
-    def validate_email(self, value: str) -> str:
-        #Rechaza emails ya registrados (case-insensitive).
+    def validate_email(self, value):
+        # Rechaza emails ya registrados (case-insensitive)
         normalized = value.strip().lower()
         if CustomUser.objects.filter(email__iexact=normalized).exists():
             raise serializers.ValidationError(
@@ -50,20 +52,21 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             )
         return normalized
 
-    def validate_password(self, value: str) -> str:
+    def validate_password(self, value):
         return _validate_password_strength(value)
 
-    def create(self, validated_data: dict) -> CustomUser:
+    def create(self, validated_data):
         validated_data["password"] = make_password(validated_data["password"])
-        # El rol siempres es cliente
-        validated_data["role"] = CustomUser.Role.CLIENTE
+        # El rol siempre es client
+        validated_data["role"] = CustomUser.Role.CLIENT
         return super().create(validated_data)
 
+
 class UserProfileSerializer(serializers.ModelSerializer):
-    #Edición del perfil por el propio usuario autenticado.
-    #Campos editables : first_name, last_name, phone.
-    #Campos de solo lectura: id, email, role, avatar_url, created_at.
-    #El email no es editable por diseño (es el identificador único).
+    # Edición del perfil por el propio usuario autenticado.
+    # Campos editables: first_name, last_name, phone.
+    # Campos de solo lectura: id, email, role, avatar_url, created_at.
+    # El email no es editable por diseño (es el identificador único).
 
     role = serializers.CharField(read_only=True)
 
@@ -81,11 +84,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "email", "role", "avatar_url", "created_at"]
 
+
 class UserAdminSerializer(serializers.ModelSerializer):
-    #Gestión completa de usuarios por parte del administrador.
-    #Todos los campos visibles, incluyendo role editable.
-    #password es write-only opcional: si se envía, se hashea; si no, se conserva la contraseña actual.
-    #OJITO solo se deberia usar en vistas protegidas con permiso IsAdminUser
+    # Gestión completa de usuarios por parte del administrador.
+    # Todos los campos visibles, incluyendo role editable.
+    # password es write-only opcional: si se envía se hashea; si no, se conserva.
+    # Solo usar en vistas protegidas con permiso IsAdmin.
 
     password = serializers.CharField(
         write_only=True,
@@ -111,8 +115,8 @@ class UserAdminSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at"]
 
-    def validate_email(self, value: str) -> str:
-        #Rechaza emails duplicados, excluyendo la instancia que se edita.
+    def validate_email(self, value):
+        # Rechaza emails duplicados, excluyendo la instancia que se edita
         normalized = value.strip().lower()
         qs = CustomUser.objects.filter(email__iexact=normalized)
         if self.instance:
@@ -123,28 +127,28 @@ class UserAdminSerializer(serializers.ModelSerializer):
             )
         return normalized
 
-    def validate_password(self, value: str) -> str:
+    def validate_password(self, value):
         return _validate_password_strength(value)
 
-    def _apply_password(self, validated_data: dict) -> dict:
+    def _apply_password(self, validated_data):
         raw_password = validated_data.pop("password", None)
         if raw_password:
             validated_data["password"] = make_password(raw_password)
         return validated_data
 
-    def create(self, validated_data: dict) -> CustomUser:
+    def create(self, validated_data):
         validated_data = self._apply_password(validated_data)
         return super().create(validated_data)
 
-    def update(self, instance: CustomUser, validated_data: dict) -> CustomUser:
+    def update(self, instance, validated_data):
         validated_data = self._apply_password(validated_data)
         return super().update(instance, validated_data)
 
+
 class UserListSerializer(serializers.ModelSerializer):
-    #Versión ligera para tablas/listados en el panel de administración.
-    #Solo expone los campos mínimos necesarios para mostrar filas en una tabla:
-    #id, email, nombre completo, rol y fecha de registro.
-    #Read-only total: nunca se usa para escritura.
+    # Versión ligera para tablas/listados en el panel de administración.
+    # Solo expone los campos mínimos: id, email, nombre completo, rol y fecha de registro.
+    # Read-only total: nunca se usa para escritura.
 
     full_name = serializers.SerializerMethodField()
 
@@ -160,25 +164,25 @@ class UserListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_full_name(self, obj: CustomUser) -> str:
-        #Devuelve el nombre completo ysi está vacío retorna el email.
+    def get_full_name(self, obj):
+        # Devuelve el nombre completo; si está vacío, retorna el email
         full = f"{obj.first_name} {obj.last_name}".strip()
         return full if full else obj.email
 
 
 class AddressSerializer(serializers.ModelSerializer):
-    """Serializer para direcciones de envío del usuario."""
+    # Serializer para direcciones de envío del usuario.
 
     class Meta:
         model = Address
         fields = [
             "id",
             "user",
-            "calle",
-            "numero",
-            "ciudad",
-            "estado",
-            "codigo_postal",
+            "street",
+            "street_number",
+            "city",
+            "state",
+            "postal_code",
             "is_default",
             "created_at",
             "updated_at",

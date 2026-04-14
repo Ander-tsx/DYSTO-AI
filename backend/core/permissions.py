@@ -3,37 +3,53 @@ from django.contrib.auth import get_user_model
 
 
 class IsAdmin(permissions.BasePermission):
-    #Permite acceso solo a usuarios con rol 'admin'.
+    # Permite acceso solo a usuarios con rol 'admin'.
     def has_permission(self, request, view):
         User = get_user_model()
-        return bool(request.user and request.user.is_authenticated and request.user.role == User.Role.ADMIN)
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role == User.Role.ADMIN
+        )
 
-class IsVendedor(permissions.BasePermission):
-    #Permite acceso solo a usuarios con rol 'vendedor'.
-    def has_permission(self, request, view):
-        User = get_user_model()
-        return bool(request.user and request.user.is_authenticated and request.user.role == User.Role.VENDEDOR)
 
-class IsVendedorOrAdmin(permissions.BasePermission):
-    #Permite acceso a usuarios con rol 'vendedor' o 'admin'.
+class IsVendor(permissions.BasePermission):
+    # Permite acceso solo a usuarios con rol 'vendedor'.
     def has_permission(self, request, view):
         User = get_user_model()
-        return bool(request.user and request.user.is_authenticated and request.user.role in [User.Role.VENDEDOR, User.Role.ADMIN])
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role == User.Role.VENDOR
+        )
+
+
+class IsVendorOrAdmin(permissions.BasePermission):
+    # Permite acceso a usuarios con rol 'vendedor' o 'admin'.
+    def has_permission(self, request, view):
+        User = get_user_model()
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role in [User.Role.VENDOR, User.Role.ADMIN]
+        )
+
 
 class IsOwnerOrAdmin(permissions.BasePermission):
-    #Permiso a nivel de objeto para permitir a vendedores editar sus propios productos,
-    #o a administradores editar cualquier producto.
+    # Permiso a nivel de objeto: el vendedor puede editar sus propios productos,
+    # el admin puede editar cualquiera.
     def has_object_permission(self, request, view, obj):
         if not bool(request.user and request.user.is_authenticated):
             return False
         User = get_user_model()
         if request.user.role == User.Role.ADMIN:
             return True
-        owner = getattr(obj, 'seller', getattr(obj, 'vendedor', None))
+        owner = getattr(obj, 'seller', getattr(obj, 'vendor', None))
         return owner == request.user
 
+
 class IsUserOwnerOrAdmin(permissions.BasePermission):
-    #Permiso a nivel de objeto para recursos propios del usuario.
+    # Permiso a nivel de objeto para recursos propios del usuario.
     def has_object_permission(self, request, view, obj):
         if not bool(request.user and request.user.is_authenticated):
             return False
