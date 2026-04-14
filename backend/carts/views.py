@@ -1,3 +1,5 @@
+from loguru import logger
+
 from products.models import Product
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
@@ -37,6 +39,9 @@ class AddToCartView(APIView):
 
         product_id_raw = request.data.get('product_id')
         if not product_id_raw:
+            logger.warning(
+                f"[AddToCartView] Missing product_id in request: user_id={request.user.id}"
+            )
             return Response(
                 {'detail': 'El campo product_id es requerido.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -45,6 +50,9 @@ class AddToCartView(APIView):
         try:
             product_id = int(product_id_raw)
         except (TypeError, ValueError):
+            logger.warning(
+                f"[AddToCartView] Invalid product_id value '{product_id_raw}': user_id={request.user.id}"
+            )
             return Response(
                 {'detail': 'El campo product_id debe ser un entero válido.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -54,12 +62,18 @@ class AddToCartView(APIView):
         try:
             quantity = int(quantity_raw)
         except (TypeError, ValueError):
+            logger.warning(
+                f"[AddToCartView] Invalid quantity value '{quantity_raw}': user_id={request.user.id}"
+            )
             return Response(
                 {'detail': 'El campo quantity debe ser un entero positivo.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if quantity < 1:
+            logger.warning(
+                f"[AddToCartView] Quantity < 1 ({quantity}): user_id={request.user.id}, product_id={product_id}"
+            )
             return Response(
                 {'detail': 'La cantidad debe ser al menos 1.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -69,6 +83,10 @@ class AddToCartView(APIView):
 
         # Verificar que el vendedor no intente comprar su propio producto
         if product.seller == request.user:
+            logger.warning(
+                f"[AddToCartView] Vendor attempted to buy own product: "
+                f"user_id={request.user.id}, product_id={product.id}"
+            )
             return Response(
                 {'detail': 'No puedes comprar tu propio producto.'},
                 status=status.HTTP_403_FORBIDDEN,
@@ -76,6 +94,10 @@ class AddToCartView(APIView):
 
         # Verificar que el producto está activo (tiene stock)
         if not product.is_active:
+            logger.warning(
+                f"[AddToCartView] Attempt to add inactive product: "
+                f"product_id={product.id}, user_id={request.user.id}"
+            )
             return Response(
                 {'detail': 'Este producto no está disponible.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -87,6 +109,10 @@ class AddToCartView(APIView):
 
         # Validar stock disponible
         if new_quantity > product.stock:
+            logger.warning(
+                f"[AddToCartView] Insufficient stock: product_id={product.id}, "
+                f"requested={new_quantity}, available={product.stock}, user_id={request.user.id}"
+            )
             return Response(
                 {
                     'detail': (
@@ -103,6 +129,10 @@ class AddToCartView(APIView):
         else:
             CartItem.objects.create(cart=cart, product=product, quantity=quantity)
 
+        logger.info(
+            f"[AddToCartView] Product added to cart: product_id={product.id}, "
+            f"quantity={new_quantity}, user_id={request.user.id}"
+        )
         serializer = CartSerializer(_cart_with_prefetch(cart.pk))
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -127,6 +157,10 @@ class CartItemDetailView(APIView):
 
         quantity = request.data.get('quantity')
         if quantity is None:
+            logger.warning(
+                f"[CartItemDetailView] Missing quantity in PATCH: "
+                f"item_id={item_id}, user_id={request.user.id}"
+            )
             return Response(
                 {'detail': 'El campo quantity es requerido.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -135,12 +169,20 @@ class CartItemDetailView(APIView):
         try:
             quantity = int(quantity)
         except (TypeError, ValueError):
+            logger.warning(
+                f"[CartItemDetailView] Invalid quantity value: "
+                f"item_id={item_id}, user_id={request.user.id}"
+            )
             return Response(
                 {'detail': 'El campo quantity debe ser un entero válido.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if quantity < 1:
+            logger.warning(
+                f"[CartItemDetailView] Quantity < 1 ({quantity}): "
+                f"item_id={item_id}, user_id={request.user.id}"
+            )
             return Response(
                 {'detail': 'La cantidad debe ser al menos 1.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -148,6 +190,11 @@ class CartItemDetailView(APIView):
 
         # Validar stock disponible
         if quantity > cart_item.product.stock:
+            logger.warning(
+                f"[CartItemDetailView] Insufficient stock on update: "
+                f"product_id={cart_item.product.id}, requested={quantity}, "
+                f"available={cart_item.product.stock}, user_id={request.user.id}"
+            )
             return Response(
                 {
                     'detail': (
@@ -161,6 +208,10 @@ class CartItemDetailView(APIView):
         cart_item.quantity = quantity
         cart_item.save(update_fields=['quantity'])
 
+        logger.info(
+            f"[CartItemDetailView] Cart item updated: item_id={item_id}, "
+            f"new_quantity={quantity}, user_id={request.user.id}"
+        )
         serializer = CartSerializer(_cart_with_prefetch(cart_item.cart_id))
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -168,7 +219,12 @@ class CartItemDetailView(APIView):
         # Elimina un item del carrito
         cart_item = self._get_cart_item(request, item_id)
         cart_pk = cart_item.cart_id
+        product_id = cart_item.product_id
         cart_item.delete()
 
+        logger.info(
+            f"[CartItemDetailView] Cart item deleted: item_id={item_id}, "
+            f"product_id={product_id}, user_id={request.user.id}"
+        )
         serializer = CartSerializer(_cart_with_prefetch(cart_pk))
         return Response(serializer.data, status=status.HTTP_200_OK)

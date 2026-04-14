@@ -1,3 +1,5 @@
+from loguru import logger
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -25,6 +27,10 @@ class AnalyzeImageView(APIView):
         request_count = cache.get(cache_key, 0)
 
         if request_count >= 10:
+            logger.warning(
+                f"[AnalyzeImageView] Rate limit exceeded: user_id={user.id}, "
+                f"count={request_count}"
+            )
             return Response(
                 {"detail": "Límite de análisis excedido (10 análisis por hora)."},
                 status=429,
@@ -35,6 +41,7 @@ class AnalyzeImageView(APIView):
         file_obj = request.FILES.get("image")
 
         if not file_obj:
+            logger.warning(f"[AnalyzeImageView] No image provided: user_id={user.id}")
             return Response(
                 {"detail": "No se proporcionó ninguna imagen."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -43,6 +50,10 @@ class AnalyzeImageView(APIView):
         # Validar tamaño (max 10MB)
         file_size_mb = file_obj.size / (1024 * 1024)
         if file_size_mb > MAX_SIZE_MB:
+            logger.warning(
+                f"[AnalyzeImageView] File too large: {file_size_mb:.2f}MB, "
+                f"user_id={user.id}"
+            )
             return Response(
                 {"detail": f"El archivo excede el límite de {MAX_SIZE_MB}MB."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -52,17 +63,28 @@ class AnalyzeImageView(APIView):
         try:
             img = Image.open(file_obj)
             image_format = img.format
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                f"[AnalyzeImageView] Invalid image file: user_id={user.id}, error={exc}"
+            )
             return Response(
                 {"detail": "El archivo no es una imagen válida."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if image_format not in ALLOWED_FORMATS:
+            logger.warning(
+                f"[AnalyzeImageView] Unsupported format '{image_format}': user_id={user.id}"
+            )
             return Response(
                 {"detail": "Solo se permiten imágenes JPG y PNG."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        logger.debug(
+            f"[AnalyzeImageView] Sending image to Gemini: format={image_format}, "
+            f"size={file_size_mb:.2f}MB, user_id={user.id}"
+        )
 
         # Leer bytes para Gemini
         file_obj.seek(0)
@@ -74,6 +96,10 @@ class AnalyzeImageView(APIView):
 
         # Si Gemini rechazó la imagen (personas/animales)
         if analysis.get("error"):
+            logger.warning(
+                f"[AnalyzeImageView] Gemini rejected image: user_id={user.id}, "
+                f"reason='{analysis.get('message')}'"
+            )
             return Response(
                 {"detail": analysis.get("message", "Imagen no permitida.")},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -84,6 +110,10 @@ class AnalyzeImageView(APIView):
             file_obj.seek(0)
             image_url = upload_image(file_obj)
 
+            logger.info(
+                f"[AnalyzeImageView] Image analyzed and uploaded successfully: "
+                f"user_id={user.id}, url={image_url}"
+            )
             return Response(
                 {
                     "image_url": image_url,
@@ -92,8 +122,13 @@ class AnalyzeImageView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        except Exception as e:
+        except Exception as exc:
+            logger.error(
+                f"[AnalyzeImageView] Cloudinary upload failed: user_id={user.id}, "
+                f"error={type(exc).__name__}: {exc}"
+            )
+            logger.exception(exc)
             return Response(
-                {"detail": str(e)},
+                {"detail": str(exc)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
