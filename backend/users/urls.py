@@ -17,20 +17,20 @@ router = DefaultRouter()
 router.register('users/addresses', AddressViewSet, basename='address')
 
 urlpatterns = [
-    # Auth
+    # Autenticación
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/login/', LoginView.as_view(), name='login'),
     path('auth/logout/', LogoutView.as_view(), name='logout'),
-    path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
 
-    # Public / Own user
-    path('users/me/', UserMeView.as_view(), name='user_me'),
+    # Usuario autenticado
+    path('users/me/', UserMeView.as_view(), name='user-me'),
 
-    # Admin - Users CRUD
-    path('users/', UserListView.as_view(), name='user_list'),
-    path('users/vendor/', CreateVendorView.as_view(), name='create_vendor'),
-    path('users/<int:pk>/', UserDetailView.as_view(), name='user_detail'),
+    # Admin - CRUD de usuarios
+    path('users/', UserListView.as_view(), name='user-list'),
+    path('users/vendor/', CreateVendorView.as_view(), name='create-vendor'),
+    path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
 
-    # Address CRUD (router)
+    # CRUD de direcciones (router)
     path('', include(router.urls)),
 ]
