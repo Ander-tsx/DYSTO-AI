@@ -14,6 +14,8 @@ from .serializers import (
     ProductListSerializer,
     ProductDetailSerializer,
 )
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 
 
 class ProductPublicPagination(PageNumberPagination):
@@ -122,6 +124,24 @@ class ProductDeleteView(generics.DestroyAPIView):
     queryset = Product.objects.all()
     permission_classes = [IsOwnerOrAdmin]
     lookup_field = 'id'
+
+
+class VendorProductDetailView(generics.RetrieveAPIView):
+    # Detalle de un producto propio para el vendedor, sin filtro de stock.
+    # Permite cargar la página de edición aunque el producto esté pausado.
+    serializer_class = ProductDetailSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        return Product.objects.filter(seller=self.request.user)
+
+    def get_object(self):
+        obj = super().get_object()
+        # Doble check: el usuario debe ser el dueño
+        if obj.seller != self.request.user:
+            raise PermissionDenied("No tienes permiso para ver este producto.")
+        return obj
 
 
 class AdminProductListView(generics.ListAPIView):

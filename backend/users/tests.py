@@ -16,8 +16,8 @@ User = get_user_model()
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 def make_user(email, role=None, password='Password123!', **kwargs):
-    # Crea un usuario con contraseña hasheada. Rol por defecto: CLIENT.
-    role = role or User.Role.CLIENT
+    # Crea un usuario con contraseña hasheada. Rol por defecto: VENDOR.
+    role = role or User.Role.VENDOR
     return User.objects.create(
         email=email,
         password=make_password(password),
@@ -62,13 +62,13 @@ class UserRegistrationTests(TestCase):
         self.assertIn('refresh', response.data)
         self.assertIn('user', response.data)
 
-    def test_register_role_always_forced_to_client(self):
-        # El rol se fuerza a CLIENT sin importar el body enviado.
+    def test_register_role_always_forced_to_vendor(self):
+        # El rol se fuerza a VENDOR sin importar el body enviado.
         data = {'email': 'forced@example.com', 'password': 'Password123!'}
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         user = User.objects.get(email='forced@example.com')
-        self.assertEqual(user.role, User.Role.CLIENT)
+        self.assertEqual(user.role, User.Role.VENDOR)
 
     def test_register_duplicate_email_returns_400(self):
         # Email ya registrado debe retornar 400 con clave 'email'.

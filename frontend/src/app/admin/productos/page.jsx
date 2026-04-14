@@ -1,200 +1,174 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import AdminLayout from "../../../components/layout/AdminLayout";
 import Badge from "../../../components/ui/Badge";
-
-const MOCK_PRODUCTS = [
-  {
-    id: 1,
-    imagen: "https://s1.significados.com/foto/producto-og.jpg",
-    titulo: "Monitor 27 pulgadas 4K",
-    vendedor: "TechVendor",
-    precio: 450.99,
-    stock: 12,
-    estado: "Activo",
-  },
-  {
-    id: 2,
-    imagen: "https://s1.significados.com/foto/producto-og.jpg",
-    titulo: "Laptop Gaming RTX 4070",
-    vendedor: "ProGamer",
-    precio: 1299.99,
-    stock: 5,
-    estado: "Activo",
-  },
-  {
-    id: 3,
-    imagen: "https://s1.significados.com/foto/producto-og.jpg",
-    titulo: "Teclado Mecanico RGB",
-    vendedor: "TechVendor",
-    precio: 129.5,
-    stock: 0,
-    estado: "Inactivo",
-  },
-  {
-    id: 4,
-    imagen: "https://s1.significados.com/foto/producto-og.jpg",
-    titulo: "Mouse Inalambrico Pro",
-    vendedor: "PeripheralsCorp",
-    precio: 79.99,
-    stock: 25,
-    estado: "Activo",
-  },
-  {
-    id: 5,
-    imagen: "https://s1.significados.com/foto/producto-og.jpg",
-    titulo: "Auriculares Wireless ANC",
-    vendedor: "ProGamer",
-    precio: 249,
-    stock: 8,
-    estado: "Activo",
-  },
-  {
-    id: 6,
-    imagen: "https://s1.significados.com/foto/producto-og.jpg",
-    titulo: "Webcam 1080p Full HD",
-    vendedor: "PeripheralsCorp",
-    precio: 89.99,
-    stock: 3,
-    estado: "Inactivo",
-  },
-];
-
-const VENDORS = ["Todos", "TechVendor", "ProGamer", "PeripheralsCorp"];
-const STATES = ["Todos", "Activo", "Inactivo"];
+import api from "@/lib/axios";
 
 export default function AdminProductsPage() {
-  const [filterState, setFilterState] = useState("Todos");
-  const [filterVendor, setFilterVendor] = useState("Todos");
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [filterState, setFilterState] = useState("Todos");
+    const [search, setSearch] = useState("");
 
-  const filteredProducts = useMemo(() => {
-    return MOCK_PRODUCTS.filter((product) => {
-      const matchState = filterState === "Todos" || product.estado === filterState;
-      const matchVendor =
-        filterVendor === "Todos" || product.vendedor === filterVendor;
-      return matchState && matchVendor;
-    });
-  }, [filterState, filterVendor]);
+    useEffect(() => {
+        // Conectado a API real: GET /api/products/admin/
+        const fetchProducts = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const res = await api.get('/products/admin/');
+                setProducts(res.data.results || res.data);
+            } catch (err) {
+                setError(err.response?.data?.detail || 'No se pudieron cargar los productos.');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-  return (
-    <AdminLayout>
-      <section className="space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold text-zinc-100">Gestion de Productos</h1>
-          <p className="text-sm text-zinc-400">
-            Revisa el inventario y estado de todos los productos en el marketplace.
-          </p>
-        </div>
+        fetchProducts();
+    }, []);
 
-        <div className="flex flex-col gap-4 md:flex-row">
-          <div className="flex-1">
-            <label htmlFor="filter-state" className="mb-2 block text-sm font-medium text-zinc-300">
-              Estado
-            </label>
-            <select
-              id="filter-state"
-              value={filterState}
-              onChange={(e) => setFilterState(e.target.value)}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 transition-colors hover:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-            >
-              {STATES.map((state) => (
-                <option key={state} value={state}>
-                  {state}
-                </option>
-              ))}
-            </select>
-          </div>
+    const filteredProducts = useMemo(() => {
+        return products.filter((product) => {
+            const matchState =
+                filterState === "Todos" ||
+                (filterState === "Activo" && product.is_active) ||
+                (filterState === "Inactivo" && !product.is_active);
 
-          <div className="flex-1">
-            <label htmlFor="filter-vendor" className="mb-2 block text-sm font-medium text-zinc-300">
-              Vendedor
-            </label>
-            <select
-              id="filter-vendor"
-              value={filterVendor}
-              onChange={(e) => setFilterVendor(e.target.value)}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 transition-colors hover:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-            >
-              {VENDORS.map((vendor) => (
-                <option key={vendor} value={vendor}>
-                  {vendor}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+            const matchSearch =
+                !search ||
+                product.title?.toLowerCase().includes(search.toLowerCase()) ||
+                product.seller_email?.toLowerCase().includes(search.toLowerCase());
 
-        <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-zinc-800">
-              <thead className="bg-zinc-900/70">
-                <tr>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Imagen
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Titulo
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Vendedor
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Precio
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Stock
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Estado
-                  </th>
-                </tr>
-              </thead>
+            return matchState && matchSearch;
+        });
+    }, [filterState, search, products]);
 
-              <tbody className="divide-y divide-zinc-800">
-                {filteredProducts.map((product) => (
-                  <tr key={product.id} className="transition-colors hover:bg-zinc-900/80">
-                    <td className="whitespace-nowrap px-5 py-4">
-                      <div className="h-10 w-10 overflow-hidden rounded bg-zinc-800">
-                        <img
-                          src={product.imagen}
-                          alt={product.titulo}
-                          className="h-full w-full object-cover"
+    return (
+        <AdminLayout>
+            <section className="space-y-6">
+                <div className="space-y-1">
+                    <h1 className="text-2xl font-semibold text-zinc-100">Gestión de Productos</h1>
+                    <p className="text-sm text-zinc-400">
+                        Revisa el inventario y estado de todos los productos en el marketplace.
+                    </p>
+                </div>
+
+                {/* Filtros */}
+                <div className="flex flex-col gap-4 md:flex-row">
+                    <div className="flex-1">
+                        <label htmlFor="filter-search" className="mb-2 block text-sm font-medium text-zinc-300">
+                            Buscar
+                        </label>
+                        <input
+                            id="filter-search"
+                            type="text"
+                            placeholder="Título o vendedor..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 transition hover:border-zinc-700 focus:border-zinc-600"
                         />
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-zinc-100">
-                      {product.titulo}
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-300">
-                      {product.vendedor}
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-300">
-                      ${product.precio.toFixed(2)}
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-300">
-                      {product.stock}
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-sm">
-                      <Badge variant={product.estado === "Activo" ? "success" : "error"}>
-                        {product.estado}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
+                    </div>
+                    <div className="flex-1">
+                        <label htmlFor="filter-state" className="mb-2 block text-sm font-medium text-zinc-300">
+                            Estado
+                        </label>
+                        <select
+                            id="filter-state"
+                            value={filterState}
+                            onChange={(e) => setFilterState(e.target.value)}
+                            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 transition hover:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                        >
+                            {["Todos", "Activo", "Inactivo"].map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
 
-                {filteredProducts.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-8 text-center text-sm text-zinc-400">
-                      No hay productos para mostrar con los filtros aplicados.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-    </AdminLayout>
-  );
+                {/* Error */}
+                {error && (
+                    <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-300">
+                        {error}
+                    </div>
+                )}
+
+                {/* Tabla */}
+                <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 shadow-sm">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-zinc-800">
+                            <thead className="bg-zinc-900/70">
+                                <tr>
+                                    {["Imagen", "Título", "Vendedor", "Precio", "Stock", "Estado"].map(col => (
+                                        <th key={col} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                                            {col}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-zinc-800">
+                                {loading ? (
+                                    [...Array(5)].map((_, i) => (
+                                        <tr key={i}>
+                                            {[...Array(6)].map((__, j) => (
+                                                <td key={j} className="px-5 py-4">
+                                                    <div className="h-4 animate-pulse rounded bg-zinc-800" />
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))
+                                ) : filteredProducts.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-5 py-8 text-center text-sm text-zinc-400">
+                                            No hay productos para mostrar.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredProducts.map((product) => (
+                                        <tr key={product.id} className="transition-colors hover:bg-zinc-900/80">
+                                            <td className="whitespace-nowrap px-5 py-4">
+                                                <div className="h-10 w-10 overflow-hidden rounded-lg bg-zinc-800 border border-zinc-700">
+                                                    {product.main_image ? (
+                                                        <img
+                                                            src={product.main_image}
+                                                            alt={product.title}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="h-full w-full flex items-center justify-center text-[10px] text-zinc-600">
+                                                            N/A
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-zinc-100 max-w-[200px] truncate">
+                                                {product.title}
+                                            </td>
+                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-400">
+                                                {product.seller_email || '-'}
+                                            </td>
+                                            <td className="whitespace-nowrap px-5 py-4 text-sm font-mono text-zinc-300">
+                                                ${Number(product.price || 0).toFixed(2)}
+                                            </td>
+                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-300">
+                                                {product.stock}
+                                            </td>
+                                            <td className="whitespace-nowrap px-5 py-4">
+                                                <Badge variant={product.is_active ? "success" : "error"}>
+                                                    {product.is_active ? "Activo" : "Inactivo"}
+                                                </Badge>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </AdminLayout>
+    );
 }

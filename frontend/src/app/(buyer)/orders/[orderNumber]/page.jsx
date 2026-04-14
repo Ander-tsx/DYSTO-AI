@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
-import OrderTicket from '@/components/orders/OrderTicket';
+import OrderTicket from '@/components/orders/OrderTicket.jsx';
+
 
 export default function OrderDetailPage() {
   const params = useParams();

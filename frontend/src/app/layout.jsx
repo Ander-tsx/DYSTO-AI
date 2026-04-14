@@ -1,12 +1,14 @@
 import { Outfit, Space_Mono } from "next/font/google";
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider } from '@/context/AuthContext.jsx';
+
 import PropTypes from "prop-types";
 import { Toaster } from "react-sileo";
 import "react-sileo/styles.css";
-import Footer from "../components/layout/Footer";
-import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer.jsx";
+import Navbar from "../components/layout/Navbar.jsx";
 import "./globals.css";
-import { CartProvider } from '@/context/CartContext';
+import { CartProvider } from '@/context/CartContext.jsx';
+
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -22,15 +24,15 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata = {
-  title: "DystoAI",
-  description: "MarketPlace",
+  title: "DystoAI — Marketplace de Inteligencia Artificial",
+  description: "Explora modelos, prompts y herramientas de IA listos para integrar en DystoAI Marketplace.",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <body
-        className={`${outfit.variable} ${spaceMono.variable} font-sans bg-background text-text-primary antialiased min-h-screen`}
+        className={`${outfit.variable} ${spaceMono.variable} font-sans bg-background text-text-primary antialiased flex flex-col min-h-screen`}
       >
         <AuthProvider>
           <CartProvider>
@@ -49,7 +51,9 @@ export default function RootLayout({ children }) {
               }}
             />
             <Navbar />
-            {children}
+            <div className="flex-1 flex flex-col">
+              {children}
+            </div>
             <Footer />
           </CartProvider>
         </AuthProvider>

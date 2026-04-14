@@ -22,7 +22,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     # Registro público de nuevos usuarios.
     # Valida email único (unicidad reforzada en validate_email).
     # Contraseña mínimo 8 chars; se almacena hasheada con make_password.
-    # El rol siempre se fuerza a client: no es editable en el registro.
+    # El rol siempre se fuerza a vendor: todos los usuarios pueden comprar y vender.
     # password es write-only y nunca se devuelve en la respuesta.
 
     password = serializers.CharField(
@@ -57,8 +57,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["password"] = make_password(validated_data["password"])
-        # El rol siempre es client
-        validated_data["role"] = CustomUser.Role.CLIENT
+        # El rol siempre es vendor: todos los usuarios pueden comprar y vender
+        validated_data["role"] = CustomUser.Role.VENDOR
         return super().create(validated_data)
 
 

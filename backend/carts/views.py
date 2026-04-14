@@ -67,6 +67,13 @@ class AddToCartView(APIView):
 
         product = get_object_or_404(Product, pk=product_id)
 
+        # Verificar que el vendedor no intente comprar su propio producto
+        if product.seller == request.user:
+            return Response(
+                {'detail': 'No puedes comprar tu propio producto.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         # Verificar que el producto está activo (tiene stock)
         if not product.is_active:
             return Response(

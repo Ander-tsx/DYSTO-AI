@@ -36,11 +36,11 @@ class ProductCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'title', 'description', 'price', 'stock',
+            'id', 'title', 'description', 'price', 'stock',
             'category', 'main_image', 'additional_images',
             'metadata', 'tags', 'units_sold'
         ]
-        read_only_fields = ['units_sold']
+        read_only_fields = ['id', 'units_sold']
 
     def validate_price(self, value):
         if value <= 0:
@@ -119,17 +119,15 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
         return attrs
 
     def update(self, instance, validated_data):
-        # Si hay unidades vendidas > 0, solo el stock es mutable
+        # Si hay unidades vendidas > 0, solo el stock es mutable.
+        # Filtramos silenciosamente el resto en lugar de rechazar,
+        # para tolerar payloads completos enviados desde el frontend.
         if getattr(instance, 'units_sold', 0) > 0:
-            allowed_fields = {'stock'}
-            attempted_fields = set(validated_data.keys())
-
-            # Si intentan actualizar algo más allá del stock, rechazar
-            invalid = attempted_fields - allowed_fields
-            if invalid:
+            stock_value = validated_data.get('stock')
+            if stock_value is None:
                 raise serializers.ValidationError(
-                    f"El producto ya tiene ventas. Solo puedes actualizar el stock. "
-                    f"Intentaste cambiar: {', '.join(invalid)}"
+                    "El producto ya tiene ventas. Solo puedes actualizar el stock."
                 )
+            validated_data = {'stock': stock_value}
 
         return super().update(instance, validated_data)
