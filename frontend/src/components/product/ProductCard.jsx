@@ -65,18 +65,7 @@ export default function ProductCard({ product }) {
           <span className="text-base font-bold text-white font-mono">
             ${Number(price).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
           </span>
-          <button
-            onClick={() => addItem(id, 1)}
-            disabled={!isAvailable}
-            aria-label={isAvailable ? 'Añadir al carrito' : 'Sin stock'}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-90 ${
-              isAvailable
-                ? 'bg-zinc-800 border border-zinc-700 text-[#e0ff4f] hover:bg-[#e0ff4f] hover:border-[#e0ff4f] hover:text-zinc-900'
-                : 'bg-zinc-800/50 border border-zinc-800 opacity-40 cursor-not-allowed'
-            }`}
-          >
-            {isAvailable ? <ShoppingCart size={16} /> : <ShieldOff size={14} />}
-          </button>
+
         </div>
       </div>
     </div>
