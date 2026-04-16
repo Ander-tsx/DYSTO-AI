@@ -5,6 +5,7 @@ import api from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
 import { notify } from '@/utils/notify';
 import PropTypes from 'prop-types';
+import { encryptPayload } from '@/lib/encryption';
 
 // ─── Componente de tarjeta de dirección ───────────────────────────────────────
 
@@ -89,7 +90,8 @@ function AddressForm({ onSave, onCancel }) {
         }
         setSaving(true);
         try {
-            const res = await api.post('/users/addresses/', form);
+            const payload = encryptPayload(form);
+            const res = await api.post('/users/addresses/', { payload });
             onSave(res.data);
             notify.success('Dirección guardada.');
         } catch (err) {
