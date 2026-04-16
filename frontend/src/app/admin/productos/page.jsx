@@ -39,7 +39,8 @@ export default function AdminProductsPage() {
             // Update UI locally
             setProducts(prev => prev.map(p => p.id === id ? { ...p, is_active: !currentStatus } : p));
         } catch (err) {
-            alert('Error al cambiar el estado del producto.');
+            const msg = err.response?.data?.detail || 'Error al cambiar el estado del producto.';
+            setError(msg);
         }
     };
 
@@ -49,7 +50,8 @@ export default function AdminProductsPage() {
             await api.delete(`/products/${id}/delete/`);
             setProducts(prev => prev.filter(p => p.id !== id));
         } catch (err) {
-            alert('Error al eliminar el producto.');
+            const msg = err.response?.data?.detail || 'Error al eliminar el producto.';
+            setError(msg);
         }
     };
 

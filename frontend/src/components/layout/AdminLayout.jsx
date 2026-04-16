@@ -23,7 +23,7 @@ const defaultTopbar = {
 };
 
 export default function AdminLayout({ children, topbar }) {
-  const { user, isAdmin, loading, logout } = useAuth();
+  const { isAdmin, loading, logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
