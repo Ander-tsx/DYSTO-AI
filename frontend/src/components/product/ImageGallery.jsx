@@ -130,16 +130,16 @@ export default function ImageGallery({ mainImage, images = [], title = 'Producto
           {/* Aspect ratio wrapper */}
           <div className="relative w-full" style={{ paddingBottom: '75%' }}>
             {hasError ? (
+              <div className="absolute inset-0 flex items-center justify-center text-[#444] font-mono text-sm">
+                Error al cargar imagen
+              </div>
+            ) : (
               <img
                 src={activeImage}
                 alt={`${title} — imagen ${activeIndex + 1}`}
                 className="absolute inset-0 w-full h-full object-contain transition-opacity duration-300"
                 onError={() => setImgError((prev) => ({ ...prev, [activeImage]: true }))}
               />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-[#444] font-mono text-sm">
-                Error al cargar imagen
-              </div>
             )}
           </div>
 
