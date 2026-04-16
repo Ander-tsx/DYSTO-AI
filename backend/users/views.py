@@ -12,6 +12,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.utils.crypto import get_random_string
 from rest_framework.exceptions import PermissionDenied
+from utils.encryption import decrypt_payload
 
 from .serializers import (
     AddressSerializer,
@@ -186,6 +187,19 @@ class AddressViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return self.request.user.addresses.all()
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+
+        # SOLO si viene cifrado este endpoint
+        if "payload" in data:
+            data = decrypt_payload(data["payload"])
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        return Response(serializer.data, status=201)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
