@@ -1,10 +1,14 @@
+"use client";
+
 import PropTypes from "prop-types";
 import Topbar from "./Topbar";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const navLinks = [
   { label: "Productos", href: "/admin/productos" },
   { label: "Usuarios", href: "/admin/usuarios" },
-  { label: "Perfil", href: "/admin/perfil" },
 ];
 
 const defaultTopbar = {
@@ -19,11 +23,29 @@ const defaultTopbar = {
 };
 
 export default function AdminLayout({ children, topbar }) {
+  const { user, isAdmin, loading, logout } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !isAdmin) {
+      router.push("/");
+    }
+  }, [loading, isAdmin, router]);
+
   const topbarConfig = {
     ...defaultTopbar,
     ...topbar,
     navLinks: topbar?.navLinks ?? defaultTopbar.navLinks,
+    onAction: logout,
   };
+
+  if (loading || !isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-100">
+        Cargando...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
