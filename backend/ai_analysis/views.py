@@ -24,9 +24,9 @@ class AnalyzeImageView(APIView):
 
         request_count = cache.get(cache_key, 0)
 
-        if request_count >= 10:
+        if request_count >= 5:
             return Response(
-                {"detail": "Límite de análisis excedido (10 análisis por hora)."},
+                {"detail": "Límite de análisis excedido (5 análisis por hora)."},
                 status=429,
             )
 
