@@ -38,6 +38,15 @@ class IsVendorOrAdmin(permissions.BasePermission):
 class IsOwnerOrAdmin(permissions.BasePermission):
     # Permiso a nivel de objeto: el vendedor puede editar sus propios productos,
     # el admin puede editar cualquiera.
+    # has_permission: rechaza a nivel de vista a usuarios no autenticados o sin rol válido.
+    def has_permission(self, request, view):
+        user = get_user_model()
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role in [user.Role.VENDOR, user.Role.ADMIN]
+        )
+
     def has_object_permission(self, request, view, obj):
         if not bool(request.user and request.user.is_authenticated):
             return False

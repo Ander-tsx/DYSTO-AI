@@ -38,6 +38,16 @@ def analyze_product_image(image_bytes, mime_type):
             "is_valid_object": true
         }
 
+        IMPORTANTE:
+        - El campo "suggested_price" debe expresarse en Pesos Mexicanos (MXN).
+          Considera los precios de mercado típicos de México para el tipo de producto analizado.
+        - El campo "category" debe ser exactamente uno de los siguientes valores:
+          Electrónica, Ropa y Moda, Hogar y Jardín, Deportes y Fitness, Salud y Belleza,
+          Juguetes y Juegos, Libros y Educación, Automotriz, Alimentos y Bebidas,
+          Arte y Manualidades, Mascotas, Música e Instrumentos, Herramientas y Ferretería,
+          Viajes y Turismo, Otro.
+          Elige la categoría más apropiada para el producto detectado.
+
         Si la imagen contiene personas o animales, deja los campos de producto vacíos
         y marca is_valid_object como false.
         """

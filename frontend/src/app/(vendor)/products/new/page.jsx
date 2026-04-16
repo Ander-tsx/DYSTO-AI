@@ -61,12 +61,20 @@ const textareaClass = 'w-full px-4 py-3 rounded-xl text-sm bg-zinc-900 border bo
 
 const CATEGORY_OPTIONS = [
   { value: '', label: 'Selecciona una categoría' },
-  { value: 'Modelos de IA', label: 'Modelos de IA' },
-  { value: 'Prompts', label: 'Prompts' },
-  { value: 'Herramientas', label: 'Herramientas' },
-  { value: 'Datasets', label: 'Datasets' },
-  { value: 'APIs', label: 'APIs' },
-  { value: 'Cursos', label: 'Cursos' },
+  { value: 'Electrónica', label: 'Electrónica' },
+  { value: 'Ropa y Moda', label: 'Ropa y Moda' },
+  { value: 'Hogar y Jardín', label: 'Hogar y Jardín' },
+  { value: 'Deportes y Fitness', label: 'Deportes y Fitness' },
+  { value: 'Salud y Belleza', label: 'Salud y Belleza' },
+  { value: 'Juguetes y Juegos', label: 'Juguetes y Juegos' },
+  { value: 'Libros y Educación', label: 'Libros y Educación' },
+  { value: 'Automotriz', label: 'Automotriz' },
+  { value: 'Alimentos y Bebidas', label: 'Alimentos y Bebidas' },
+  { value: 'Arte y Manualidades', label: 'Arte y Manualidades' },
+  { value: 'Mascotas', label: 'Mascotas' },
+  { value: 'Música e Instrumentos', label: 'Música e Instrumentos' },
+  { value: 'Herramientas y Ferretería', label: 'Herramientas y Ferretería' },
+  { value: 'Viajes y Turismo', label: 'Viajes y Turismo' },
   { value: 'Otro', label: 'Otro' },
 ];
 
