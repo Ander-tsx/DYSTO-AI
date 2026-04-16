@@ -7,7 +7,7 @@ import api from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import ImageGallery from '@/components/product/ImageGallery.jsx';
-
+import PropTypes from 'prop-types';
 
 // ── Mini Icons ─────────────────────────────────────────────────────────────────
 
@@ -22,6 +22,10 @@ function ArrowLeftIcon({ size = 18 }) {
   );
 }
 
+ArrowLeftIcon.propTypes = {
+  size: PropTypes.number,
+};
+
 function CartIcon({ size = 18 }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
@@ -34,6 +38,10 @@ function CartIcon({ size = 18 }) {
   );
 }
 
+CartIcon.propTypes = {
+  size: PropTypes.number,
+};
+
 function TagIcon({ size = 14 }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
@@ -45,6 +53,10 @@ function TagIcon({ size = 14 }) {
   );
 }
 
+TagIcon.propTypes = {
+  size: PropTypes.number,
+};
+
 function BoxIcon({ size = 16 }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
@@ -54,6 +66,10 @@ function BoxIcon({ size = 16 }) {
     </svg>
   );
 }
+
+BoxIcon.propTypes = {
+  size: PropTypes.number,
+};
 
 function ShieldOffIcon({ size = 22 }) {
   return (
@@ -65,6 +81,10 @@ function ShieldOffIcon({ size = 22 }) {
     </svg>
   );
 }
+
+ShieldOffIcon.propTypes = {
+  size: PropTypes.number,
+};
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -92,6 +112,399 @@ function ProductDetailSkeleton() {
     </div>
   );
 }
+
+// ── Extracted Sub-components ──────────────────────────────────────────────────
+
+/** Badge de disponibilidad junto al precio */
+function AvailabilityBadge({ isActive, isPaused }) {
+  if (isActive) {
+    return (
+      <span className="text-sm px-3 py-1 rounded-full font-semibold"
+        style={{ background: 'rgba(34,197,94,0.08)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' }}>
+        Disponible
+      </span>
+    );
+  }
+  if (isPaused) {
+    return (
+      <span className="text-sm px-3 py-1 rounded-full font-semibold"
+        style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+        No disponible
+      </span>
+    );
+  }
+  return null;
+}
+
+AvailabilityBadge.propTypes = {
+  isActive: PropTypes.bool,
+  isPaused: PropTypes.bool,
+};
+
+/** Indicador de stock */
+function StockIndicator({ isActive, stockAvailable }) {
+  return (
+    <div className="flex items-center gap-2 mb-5">
+      <BoxIcon size={15} />
+      <span className="text-sm" style={{ color: '#666' }}>
+        {isActive
+          ? <>Stock disponible: <strong style={{ color: '#f0f0f0' }}>{stockAvailable}</strong> unidades</>
+          : <span style={{ color: '#f87171' }}>Sin stock disponible</span>
+        }
+      </span>
+    </div>
+  );
+}
+
+StockIndicator.propTypes = {
+  isActive: PropTypes.bool,
+  stockAvailable: PropTypes.number,
+};
+
+/** Botón "Añadir al carrito" con sus estados de carga / éxito */
+function AddToCartButton({ adding, addSuccess, onClick }) {
+  const buttonStyle = {
+    background: addSuccess ? 'rgba(34,197,94,0.1)' : '#e0ff4f',
+    color: addSuccess ? '#4ade80' : '#0a0a0a',
+    border: addSuccess ? '1px solid rgba(34,197,94,0.3)' : 'none',
+  };
+
+  const renderContent = () => {
+    if (adding) {
+      return (
+        <>
+          <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          Agregando…
+        </>
+      );
+    }
+    if (addSuccess) {
+      return <>✓ ¡Agregado al carrito!</>;
+    }
+    return (
+      <>
+        <CartIcon />
+        Añadir al carrito
+      </>
+    );
+  };
+
+  return (
+    <button
+      id="product-add-to-cart-btn"
+      onClick={onClick}
+      disabled={adding}
+      className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl text-sm font-bold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+      style={buttonStyle}
+    >
+      {renderContent()}
+    </button>
+  );
+}
+
+AddToCartButton.propTypes = {
+  adding: PropTypes.bool,
+  addSuccess: PropTypes.bool,
+  onClick: PropTypes.func,
+};
+
+/** Sección de acción: selector de cantidad + carrito / mensajes según estado */
+function CartActionSection({
+  isAuthenticated, isOwnProduct, isActive, quantity, maxQty,
+  adding, addSuccess, addError, onQuantityChange, onAddToCart,
+}) {
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-center" style={{ color: '#666' }}>
+          Inicia sesión para añadir este producto al carrito
+        </p>
+        <Link
+          href="/login"
+          id="product-login-to-buy-btn"
+          className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl text-sm font-bold transition-all duration-200"
+          style={{ background: '#e0ff4f', color: '#0a0a0a' }}
+        >
+          Iniciar sesión para comprar
+        </Link>
+      </div>
+    );
+  }
+
+  if (isOwnProduct) {
+    return (
+      <div
+        className="flex items-center gap-3 px-5 py-3.5 rounded-xl text-sm font-semibold"
+        style={{ background: 'rgba(224,255,79,0.06)', border: '1px solid rgba(224,255,79,0.15)', color: '#e0ff4f' }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="2" />
+        </svg>
+        Este es tu producto
+      </div>
+    );
+  }
+
+  if (!isActive) {
+    return (
+      <div
+        className="flex items-center justify-center py-3.5 px-6 rounded-xl text-sm font-semibold"
+        style={{ background: 'rgba(239,68,68,0.06)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
+      >
+        Producto no disponible para compra
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Qty selector */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm" style={{ color: '#666' }}>Cantidad:</span>
+        <div className="flex items-center rounded-lg border overflow-hidden" style={{ borderColor: '#1f1f1f' }}>
+          <button
+            aria-label="Disminuir cantidad"
+            onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
+            disabled={quantity <= 1}
+            className="w-9 h-9 flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-30"
+            style={{ background: '#111', color: '#f0f0f0' }}
+          >
+            −
+          </button>
+          <span
+            className="w-10 h-9 flex items-center justify-center text-sm font-semibold"
+            style={{ background: '#0d0d0d', color: '#f0f0f0' }}
+          >
+            {quantity}
+          </span>
+          <button
+            aria-label="Aumentar cantidad"
+            onClick={() => onQuantityChange(Math.min(maxQty, quantity + 1))}
+            disabled={quantity >= maxQty}
+            className="w-9 h-9 flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-30"
+            style={{ background: '#111', color: '#f0f0f0' }}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* Add to cart button */}
+      <AddToCartButton adding={adding} addSuccess={addSuccess} onClick={onAddToCart} />
+
+      {/* Error feedback */}
+      {addError && (
+        <p className="text-xs text-red-400 text-center">{addError}</p>
+      )}
+    </div>
+  );
+}
+
+CartActionSection.propTypes = {
+  isAuthenticated: PropTypes.bool,
+  isOwnProduct: PropTypes.bool,
+  isActive: PropTypes.bool,
+  quantity: PropTypes.number,
+  maxQty: PropTypes.number,
+  adding: PropTypes.bool,
+  addSuccess: PropTypes.bool,
+  addError: PropTypes.string,
+  onQuantityChange: PropTypes.func,
+  onAddToCart: PropTypes.func,
+};
+
+/** Contenido principal del producto (galería + info) */
+function ProductContent({
+  product, formattedPrice, isActive, isPaused, stockAvailable,
+  isAuthenticated, isOwnProduct, quantity, maxQty,
+  adding, addSuccess, addError, onQuantityChange, onAddToCart,
+}) {
+  return (
+    <>
+      {/* Paused / unavailable banner */}
+      {isPaused && (
+        <div
+          className="flex items-center gap-3 px-5 py-4 rounded-xl border mb-8"
+          style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.25)' }}
+          role="alert"
+        >
+          <ShieldOffIcon size={20} />
+          <div>
+            <p className="text-red-400 font-semibold text-sm">Producto no disponible</p>
+            <p className="text-[#888] text-xs mt-0.5">
+              Este producto está pausado o sin stock y no puede adquirirse en este momento.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16">
+        {/* ── Left: Gallery ───────────────────────────────────── */}
+        <div>
+          <ImageGallery
+            mainImage={product.main_image}
+            images={product.additional_images || []}
+            title={product.title}
+          />
+        </div>
+
+        {/* ── Right: Product info ──────────────────────────────── */}
+        <div className="flex flex-col">
+
+          {/* Category */}
+          {product.category && (
+            <span
+              className="text-xs font-bold uppercase tracking-widest mb-3 font-mono"
+              style={{ color: '#e0ff4f' }}
+            >
+              {product.category}
+            </span>
+          )}
+
+          {/* Title */}
+          <h1 className="text-3xl md:text-4xl font-bold leading-tight" style={{ color: '#f0f0f0' }}>
+            {product.title}
+          </h1>
+
+          {/* Seller */}
+          {product.seller_email && (
+            <p className="mt-2 text-sm" style={{ color: '#555' }}>
+              Por <span style={{ color: '#888' }}>{product.seller_email}</span>
+            </p>
+          )}
+
+          {/* Divider */}
+          <div className="my-5 border-t" style={{ borderColor: '#1f1f1f' }} />
+
+          {/* Price */}
+          <div className="flex items-baseline gap-3 mb-5">
+            <span className="text-4xl font-extrabold tracking-tight" style={{ color: '#f0f0f0' }}>
+              {formattedPrice}
+            </span>
+            <AvailabilityBadge isActive={isActive} isPaused={isPaused} />
+          </div>
+
+          {/* Stock indicator */}
+          <StockIndicator isActive={isActive} stockAvailable={stockAvailable} />
+
+          {/* Description */}
+          {product.description && (
+            <div className="mb-6">
+              <h2 className="text-xs font-bold uppercase tracking-widest mb-2 font-mono" style={{ color: '#444' }}>
+                Descripción
+              </h2>
+              <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: '#999' }}>
+                {product.description}
+              </p>
+            </div>
+          )}
+
+          {/* Tags */}
+          {product.tags && product.tags.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-xs font-bold uppercase tracking-widest mb-2 font-mono flex items-center gap-1" style={{ color: '#444' }}>
+                <TagIcon /> Tags
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {product.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-xs px-2.5 py-1 rounded-full"
+                    style={{
+                      background: '#161616',
+                      color: '#666',
+                      border: '1px solid #1f1f1f',
+                    }}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Metadata */}
+          {product.metadata && Object.keys(product.metadata).length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-xs font-bold uppercase tracking-widest mb-2 font-mono" style={{ color: '#444' }}>
+                Especificaciones
+              </h2>
+              <div className="rounded-xl overflow-hidden border" style={{ borderColor: '#1f1f1f' }}>
+                {Object.entries(product.metadata).map(([key, value], i) => (
+                  <div
+                    key={key}
+                    className="flex justify-between px-4 py-2.5 text-sm"
+                    style={{
+                      background: i % 2 === 0 ? '#0d0d0d' : '#111111',
+                      borderBottom: i < Object.keys(product.metadata).length - 1 ? '1px solid #1a1a1a' : 'none',
+                    }}
+                  >
+                    <span style={{ color: '#555' }} className="capitalize">{key.replaceAll('_', ' ')}</span>
+                    <span style={{ color: '#bbb' }} className="text-right max-w-[60%]">
+                      {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Units sold */}
+          {product.units_sold > 0 && (
+            <p className="text-xs mb-4" style={{ color: '#444' }}>
+              🔥 {product.units_sold} unidades vendidas
+            </p>
+          )}
+
+          {/* Divider */}
+          <div className="mt-auto border-t pt-6" style={{ borderColor: '#1f1f1f' }}>
+            <CartActionSection
+              isAuthenticated={isAuthenticated}
+              isOwnProduct={isOwnProduct}
+              isActive={isActive}
+              quantity={quantity}
+              maxQty={maxQty}
+              adding={adding}
+              addSuccess={addSuccess}
+              addError={addError}
+              onQuantityChange={onQuantityChange}
+              onAddToCart={onAddToCart}
+            />
+          </div>
+
+          {/* Timestamps */}
+          {product.created_at && (
+            <p className="text-xs mt-4" style={{ color: '#333' }}>
+              Publicado: {new Date(product.created_at).toLocaleDateString('es-MX', {
+                year: 'numeric', month: 'long', day: 'numeric',
+              })}
+            </p>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+ProductContent.propTypes = {
+  product: PropTypes.object,
+  formattedPrice: PropTypes.string,
+  isActive: PropTypes.bool,
+  isPaused: PropTypes.bool,
+  stockAvailable: PropTypes.number,
+  isAuthenticated: PropTypes.bool,
+  isOwnProduct: PropTypes.bool,
+  quantity: PropTypes.number,
+  maxQty: PropTypes.number,
+  adding: PropTypes.bool,
+  addSuccess: PropTypes.bool,
+  addError: PropTypes.string,
+  onQuantityChange: PropTypes.func,
+  onAddToCart: PropTypes.func,
+};
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -214,284 +627,22 @@ export default function ProductDetailPage() {
 
       {/* Product content */}
       {!loading && !error && product && (
-        <>
-          {/* Paused / unavailable banner */}
-          {isPaused && (
-            <div
-              className="flex items-center gap-3 px-5 py-4 rounded-xl border mb-8"
-              style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.25)' }}
-              role="alert"
-            >
-              <ShieldOffIcon size={20} />
-              <div>
-                <p className="text-red-400 font-semibold text-sm">Producto no disponible</p>
-                <p className="text-[#888] text-xs mt-0.5">
-                  Este producto está pausado o sin stock y no puede adquirirse en este momento.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16">
-            {/* ── Left: Gallery ───────────────────────────────────── */}
-            <div>
-              <ImageGallery
-                mainImage={product.main_image}
-                images={product.additional_images || []}
-                title={product.title}
-              />
-            </div>
-
-            {/* ── Right: Product info ──────────────────────────────── */}
-            <div className="flex flex-col">
-
-              {/* Category */}
-              {product.category && (
-                <span
-                  className="text-xs font-bold uppercase tracking-widest mb-3 font-mono"
-                  style={{ color: '#e0ff4f' }}
-                >
-                  {product.category}
-                </span>
-              )}
-
-              {/* Title */}
-              <h1 className="text-3xl md:text-4xl font-bold leading-tight" style={{ color: '#f0f0f0' }}>
-                {product.title}
-              </h1>
-
-              {/* Seller */}
-              {product.seller_email && (
-                <p className="mt-2 text-sm" style={{ color: '#555' }}>
-                  Por <span style={{ color: '#888' }}>{product.seller_email}</span>
-                </p>
-              )}
-
-              {/* Divider */}
-              <div className="my-5 border-t" style={{ borderColor: '#1f1f1f' }} />
-
-              {/* Price */}
-              <div className="flex items-baseline gap-3 mb-5">
-                <span className="text-4xl font-extrabold tracking-tight" style={{ color: '#f0f0f0' }}>
-                  {formattedPrice}
-                </span>
-                {isActive && (
-                  <span className="text-sm px-3 py-1 rounded-full font-semibold"
-                    style={{ background: 'rgba(34,197,94,0.08)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' }}>
-                    Disponible
-                  </span>
-                )}
-                {isPaused && (
-                  <span className="text-sm px-3 py-1 rounded-full font-semibold"
-                    style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
-                    No disponible
-                  </span>
-                )}
-              </div>
-
-              {/* Stock indicator */}
-              <div className="flex items-center gap-2 mb-5">
-                <BoxIcon size={15} />
-                <span className="text-sm" style={{ color: '#666' }}>
-                  {isActive
-                    ? <>Stock disponible: <strong style={{ color: '#f0f0f0' }}>{stockAvailable}</strong> unidades</>
-                    : <span style={{ color: '#f87171' }}>Sin stock disponible</span>
-                  }
-                </span>
-              </div>
-
-              {/* Description */}
-              {product.description && (
-                <div className="mb-6">
-                  <h2 className="text-xs font-bold uppercase tracking-widest mb-2 font-mono" style={{ color: '#444' }}>
-                    Descripción
-                  </h2>
-                  <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: '#999' }}>
-                    {product.description}
-                  </p>
-                </div>
-              )}
-
-              {/* Tags */}
-              {product.tags && product.tags.length > 0 && (
-                <div className="mb-6">
-                  <h2 className="text-xs font-bold uppercase tracking-widest mb-2 font-mono flex items-center gap-1" style={{ color: '#444' }}>
-                    <TagIcon /> Tags
-                  </h2>
-                  <div className="flex flex-wrap gap-2">
-                    {product.tags.map((tag, i) => (
-                      <span
-                        key={i}
-                        className="text-xs px-2.5 py-1 rounded-full"
-                        style={{
-                          background: '#161616',
-                          color: '#666',
-                          border: '1px solid #1f1f1f',
-                        }}
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Metadata */}
-              {product.metadata && Object.keys(product.metadata).length > 0 && (
-                <div className="mb-6">
-                  <h2 className="text-xs font-bold uppercase tracking-widest mb-2 font-mono" style={{ color: '#444' }}>
-                    Especificaciones
-                  </h2>
-                  <div className="rounded-xl overflow-hidden border" style={{ borderColor: '#1f1f1f' }}>
-                    {Object.entries(product.metadata).map(([key, value], i) => (
-                      <div
-                        key={key}
-                        className="flex justify-between px-4 py-2.5 text-sm"
-                        style={{
-                          background: i % 2 === 0 ? '#0d0d0d' : '#111111',
-                          borderBottom: i < Object.keys(product.metadata).length - 1 ? '1px solid #1a1a1a' : 'none',
-                        }}
-                      >
-                        <span style={{ color: '#555' }} className="capitalize">{key.replace(/_/g, ' ')}</span>
-                        <span style={{ color: '#bbb' }} className="text-right max-w-[60%]">
-                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Units sold */}
-              {product.units_sold > 0 && (
-                <p className="text-xs mb-4" style={{ color: '#444' }}>
-                  🔥 {product.units_sold} unidades vendidas
-                </p>
-              )}
-
-              {/* Divider */}
-              <div className="mt-auto border-t pt-6" style={{ borderColor: '#1f1f1f' }}>
-
-                {/* Quantity selector + Add to Cart */}
-                {isAuthenticated ? (
-                  isOwnProduct ? (
-                    /* El vendedor ve su propio producto */
-                    <div
-                      className="flex items-center gap-3 px-5 py-3.5 rounded-xl text-sm font-semibold"
-                      style={{ background: 'rgba(224,255,79,0.06)', border: '1px solid rgba(224,255,79,0.15)', color: '#e0ff4f' }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
-                        <circle cx="12" cy="12" r="2"/>
-                      </svg>
-                      Este es tu producto
-                    </div>
-                  ) : isActive ? (
-                    <div className="flex flex-col gap-3">
-                      {/* Qty selector */}
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm" style={{ color: '#666' }}>Cantidad:</span>
-                        <div className="flex items-center rounded-lg border overflow-hidden" style={{ borderColor: '#1f1f1f' }}>
-                          <button
-                            aria-label="Disminuir cantidad"
-                            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                            disabled={quantity <= 1}
-                            className="w-9 h-9 flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-30"
-                            style={{ background: '#111', color: '#f0f0f0' }}
-                          >
-                            −
-                          </button>
-                          <span
-                            className="w-10 h-9 flex items-center justify-center text-sm font-semibold"
-                            style={{ background: '#0d0d0d', color: '#f0f0f0' }}
-                          >
-                            {quantity}
-                          </span>
-                          <button
-                            aria-label="Aumentar cantidad"
-                            onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
-                            disabled={quantity >= maxQty}
-                            className="w-9 h-9 flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-30"
-                            style={{ background: '#111', color: '#f0f0f0' }}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Add to cart button */}
-                      <button
-                        id="product-add-to-cart-btn"
-                        onClick={handleAddToCart}
-                        disabled={adding}
-                        className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl text-sm font-bold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                        style={{
-                          background: addSuccess ? 'rgba(34,197,94,0.1)' : '#e0ff4f',
-                          color: addSuccess ? '#4ade80' : '#0a0a0a',
-                          border: addSuccess ? '1px solid rgba(34,197,94,0.3)' : 'none',
-                        }}
-                      >
-                        {adding ? (
-                          <>
-                            <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                            </svg>
-                            Agregando…
-                          </>
-                        ) : addSuccess ? (
-                          <>✓ ¡Agregado al carrito!</>
-                        ) : (
-                          <>
-                            <CartIcon />
-                            Añadir al carrito
-                          </>
-                        )}
-                      </button>
-
-                      {/* Error feedback */}
-                      {addError && (
-                        <p className="text-xs text-red-400 text-center">{addError}</p>
-                      )}
-                    </div>
-                  ) : (
-                    /* Paused: authenticated but product paused */
-                    <div
-                      className="flex items-center justify-center py-3.5 px-6 rounded-xl text-sm font-semibold"
-                      style={{ background: 'rgba(239,68,68,0.06)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
-                      role="status"
-                    >
-                      Producto no disponible para compra
-                    </div>
-                  )
-                ) : (
-                  /* Not authenticated: show login prompt */
-                  <div className="flex flex-col gap-3">
-                    <p className="text-sm text-center" style={{ color: '#666' }}>
-                      Inicia sesión para añadir este producto al carrito
-                    </p>
-                    <Link
-                      href="/login"
-                      id="product-login-to-buy-btn"
-                      className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl text-sm font-bold transition-all duration-200"
-                      style={{ background: '#e0ff4f', color: '#0a0a0a' }}
-                    >
-                      Iniciar sesión para comprar
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* Timestamps */}
-              {product.created_at && (
-                <p className="text-xs mt-4" style={{ color: '#333' }}>
-                  Publicado: {new Date(product.created_at).toLocaleDateString('es-MX', {
-                    year: 'numeric', month: 'long', day: 'numeric',
-                  })}
-                </p>
-              )}
-            </div>
-          </div>
-        </>
+        <ProductContent
+          product={product}
+          formattedPrice={formattedPrice}
+          isActive={isActive}
+          isPaused={isPaused}
+          stockAvailable={stockAvailable}
+          isAuthenticated={isAuthenticated}
+          isOwnProduct={isOwnProduct}
+          quantity={quantity}
+          maxQty={maxQty}
+          adding={adding}
+          addSuccess={addSuccess}
+          addError={addError}
+          onQuantityChange={setQuantity}
+          onAddToCart={handleAddToCart}
+        />
       )}
     </main>
   );

@@ -2,6 +2,7 @@
 
 import { useCart } from '@/context/CartContext';
 import { Minus, Plus, Trash2, Image as ImageIcon } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 export default function CartItem({ item }) {
   const { updateItem, removeItem } = useCart();
@@ -75,3 +76,17 @@ export default function CartItem({ item }) {
     </div>
   );
 }
+
+CartItem.propTypes = {
+  item: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    quantity: PropTypes.number.isRequired,
+    product: PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      title: PropTypes.string.isRequired,
+      price: PropTypes.number.isRequired,
+      main_image: PropTypes.string,
+    }).isRequired,
+    subtotal: PropTypes.number.isRequired,
+  }).isRequired,
+};

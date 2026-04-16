@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { notify } from '@/utils/notify';
 import { User, Mail, Lock, Loader2, UserPlus, Sparkles } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 const inputClass = 'w-full h-11 px-4 rounded-xl text-sm bg-zinc-950 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10 transition-all';
 
@@ -20,6 +21,12 @@ function Field({ label, icon: Icon, children }) {
     </div>
   );
 }
+
+Field.propTypes = {
+  label: PropTypes.string.isRequired,
+  icon: PropTypes.elementType,
+  children: PropTypes.node.isRequired,
+};
 
 export default function RegisterPage() {
   const { register, isAuthenticated } = useAuth();

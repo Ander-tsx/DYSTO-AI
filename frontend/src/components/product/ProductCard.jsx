@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { ShoppingCart, ShieldOff, Image as ImageIcon } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 export default function ProductCard({ product }) {
   const { id, title, price, category, stock, main_image } = product;
@@ -69,11 +70,10 @@ export default function ProductCard({ product }) {
             onClick={() => addItem(id, 1)}
             disabled={!isAvailable}
             aria-label={isAvailable ? 'Añadir al carrito' : 'Sin stock'}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-90 ${
-              isAvailable
-                ? 'bg-zinc-800 border border-zinc-700 text-[#e0ff4f] hover:bg-[#e0ff4f] hover:border-[#e0ff4f] hover:text-zinc-900'
-                : 'bg-zinc-800/50 border border-zinc-800 opacity-40 cursor-not-allowed'
-            }`}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-90 ${isAvailable
+              ? 'bg-zinc-800 border border-zinc-700 text-[#e0ff4f] hover:bg-[#e0ff4f] hover:border-[#e0ff4f] hover:text-zinc-900'
+              : 'bg-zinc-800/50 border border-zinc-800 opacity-40 cursor-not-allowed'
+              }`}
           >
             {isAvailable ? <ShoppingCart size={16} /> : <ShieldOff size={14} />}
           </button>
@@ -82,3 +82,16 @@ export default function ProductCard({ product }) {
     </div>
   );
 }
+
+ProductCard.propTypes = {
+  product: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    title: PropTypes.string.isRequired,
+    price: PropTypes.number.isRequired,
+    category: PropTypes.shape({
+      name: PropTypes.string.isRequired,
+    }).isRequired,
+    stock: PropTypes.number.isRequired,
+    main_image: PropTypes.string.isRequired,
+  }).isRequired,
+};

@@ -1,70 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '@/lib/axios';
 import ProductCard from '@/components/product/ProductCard.jsx';
+import CustomSelect from '@/components/ui/CustomSelect.jsx';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
-
-// ── Custom Select ─────────────────────────────────────────────────────────────
-
-function CustomSelect({ value, onChange, options, placeholder = 'Seleccionar', id }) {
-  const [open, setOpen] = useState(false);
-  const ref = React.useRef(null);
-  const selected = options.find(o => o.value === value);
-
-  useEffect(() => {
-    function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    if (open) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [open]);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        id={id}
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="flex items-center justify-between gap-2 w-full h-10 px-3 rounded-lg text-sm font-medium bg-zinc-800/60 border border-zinc-700/60 text-zinc-200 hover:border-zinc-600 transition-all"
-      >
-        <span className={selected ? 'text-white' : 'text-zinc-500'}>
-          {selected?.label || placeholder}
-        </span>
-        <ChevronDown size={14} className={`transition-transform duration-200 text-zinc-500 ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {open && (
-        <div
-          className="absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden z-50"
-          style={{
-            background: 'rgba(18,18,18,0.98)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.7)',
-          }}
-        >
-          {options.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => { onChange(opt.value); setOpen(false); }}
-              className={`flex items-center w-full px-4 py-2.5 text-sm text-left transition-colors ${
-                value === opt.value
-                  ? 'text-[#e0ff4f] bg-[#e0ff4f]/8'
-                  : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              {opt.label}
-              {value === opt.value && <span className="ml-auto text-[#e0ff4f]">✓</span>}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+import { Search, SlidersHorizontal, X } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 // ── Skeleton Card ─────────────────────────────────────────────────────────────
 
@@ -106,7 +48,7 @@ export default function MarketplacePage() {
   useEffect(() => {
     api.get('/products/categories/')
       .then(res => setCategories(res.data || []))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Push filters to URL (debounced for text inputs)
@@ -136,30 +78,15 @@ export default function MarketplacePage() {
   // Fetch products from URL params
   const fetchProducts = async (pageNumber = 1) => {
     try {
-      if (pageNumber === 1) setLoading(true);
-      else setIsLoadingMore(true);
+      pageNumber === 1 ? setLoading(true) : setIsLoadingMore(true);
 
-      const response = await api.get('/products/', {
-        params: {
-          page: pageNumber,
-          search: searchParams.get('search') || '',
-          category: searchParams.get('category') || '',
-          min_price: searchParams.get('min_price') || '',
-          max_price: searchParams.get('max_price') || '',
-          sort: searchParams.get('sort') || '',
-        }
-      });
+      const { products: newProducts, hasMore } = await fetchProductsApi({ pageNumber, searchParams });
 
-      const newProducts = response.data.results || response.data;
-      const nextURL = response.data.next;
+      setProducts(prev =>
+        pageNumber === 1 ? newProducts : [...prev, ...newProducts]
+      );
 
-      if (pageNumber === 1) {
-        setProducts(newProducts);
-      } else {
-        setProducts(prev => [...prev, ...newProducts]);
-      }
-
-      setHasMore(!!nextURL);
+      setHasMore(hasMore);
     } catch (err) {
       setError(err.response?.data?.detail || 'No se pudieron cargar los productos en este momento.');
     } finally {
@@ -190,18 +117,19 @@ export default function MarketplacePage() {
     setSort('');
   };
 
-  const hasActiveFilters = search || category || minPrice || maxPrice || sort;
+  const hasActiveFilters = useMemo(() => {
+    return [search, category, minPrice, maxPrice, sort].some(Boolean);
+  }, [search, category, minPrice, maxPrice, sort]);
 
-  const categoryOptions = [
-    { value: '', label: 'Todas las categorías' },
-    ...categories.map(c => ({ value: c, label: c })),
-  ];
+  const { categoryOptions, sortOptions } = useMarketplaceOptions(categories);
 
-  const sortOptions = [
-    { value: '', label: 'Más recientes' },
-    { value: 'price_asc', label: 'Precio: menor a mayor' },
-    { value: 'price_desc', label: 'Precio: mayor a menor' },
-  ];
+  const isEmpty = products.length === 0;
+  const showError = !!error;
+  const isLoadingState = loading && !error;
+
+  const productText = products.length === 1
+    ? '1 producto encontrado'
+    : `${products.length} productos encontrados`;
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] pb-20">
@@ -305,13 +233,15 @@ export default function MarketplacePage() {
           </div>
         )}
 
-        {loading && !error ? (
+        {isLoadingState ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => <SkeletonCard key={i} />)}
+            {Array.from({ length: 8 }, (_, i) => (
+              <SkeletonCard key={`skeleton-${i}`} />
+            ))}
           </div>
         ) : (
           <>
-            {products.length === 0 && !error ? (
+            {isEmpty && !showError ? (
               <div className="text-center py-24 bg-zinc-900/40 rounded-2xl border border-zinc-800 border-dashed">
                 <span className="text-4xl mb-4 block opacity-40">🔍</span>
                 <h3 className="text-xl font-semibold text-zinc-300 mb-2">No se encontraron productos</h3>
@@ -328,7 +258,7 @@ export default function MarketplacePage() {
               <>
                 <div className="flex items-center justify-between mb-6">
                   <p className="text-sm text-zinc-600">
-                    {products.length} producto{products.length !== 1 ? 's' : ''} encontrado{products.length !== 1 ? 's' : ''}
+                    {productText}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -358,6 +288,39 @@ export default function MarketplacePage() {
   );
 }
 
+const fetchProductsApi = async ({ pageNumber, searchParams }) => {
+  const response = await api.get('/products/', {
+    params: {
+      page: pageNumber,
+      search: searchParams.get('search') || '',
+      category: searchParams.get('category') || '',
+      min_price: searchParams.get('min_price') || '',
+      max_price: searchParams.get('max_price') || '',
+      sort: searchParams.get('sort') || '',
+    }
+  });
+
+  return {
+    products: response.data.results || response.data,
+    hasMore: !!response.data.next,
+  };
+};
+
+const useMarketplaceOptions = (categories) => {
+  const categoryOptions = [
+    { value: '', label: 'Todas las categorías' },
+    ...categories.map(c => ({ value: c, label: c })),
+  ];
+
+  const sortOptions = [
+    { value: '', label: 'Más recientes' },
+    { value: 'price_asc', label: 'Precio: menor a mayor' },
+    { value: 'price_desc', label: 'Precio: mayor a menor' },
+  ];
+
+  return { categoryOptions, sortOptions };
+};
+
 function Chip({ label, onRemove }) {
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#e0ff4f]/10 border border-[#e0ff4f]/20 text-[#e0ff4f] text-xs font-medium">
@@ -368,3 +331,8 @@ function Chip({ label, onRemove }) {
     </span>
   );
 }
+
+Chip.propTypes = {
+  label: PropTypes.string.isRequired,
+  onRemove: PropTypes.func.isRequired,
+};

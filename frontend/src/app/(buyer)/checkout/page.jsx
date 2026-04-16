@@ -7,6 +7,7 @@ import AddressSelector from '@/components/orders/AddressSelector.jsx';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ShoppingCart, ArrowLeft, CheckCircle, Loader2, AlertCircle, Store } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 function OrderLine({ label, value, highlight = false }) {
   return (
@@ -19,6 +20,12 @@ function OrderLine({ label, value, highlight = false }) {
     </div>
   );
 }
+
+OrderLine.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+  highlight: PropTypes.bool,
+};
 
 export default function CheckoutPage() {
   const { cartItems, cartTotal, cartCount, clearCart } = useCart();

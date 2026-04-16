@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import {
@@ -18,6 +18,7 @@ import {
   Store,
   Plus,
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 // ── CartButton ────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,10 @@ function CartButton({ count }) {
     </Link>
   );
 }
+
+CartButton.propTypes = {
+  count: PropTypes.number.isRequired,
+};
 
 // ── UserMenu ──────────────────────────────────────────────────────────────────
 
@@ -186,10 +191,21 @@ function UserMenu({ user, onLogout }) {
   );
 }
 
+UserMenu.propTypes = {
+  user: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    first_name: PropTypes.string.isRequired,
+    last_name: PropTypes.string.isRequired,
+    email: PropTypes.string.isRequired,
+    role: PropTypes.string.isRequired,
+  }).isRequired,
+  onLogout: PropTypes.func.isRequired,
+};
+
 // ── Navbar (main export) ──────────────────────────────────────────────────────
 
 export default function Navbar() {
-  const { user, isAuthenticated, logout, loading } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const pathname = usePathname();
   const { cartCount } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);

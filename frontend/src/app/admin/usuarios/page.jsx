@@ -71,6 +71,65 @@ export default function AdminUsuariosPage() {
         return 'default';
     };
 
+    const usersTableContent = (() => {
+        if (loading) {
+            return Array.from({ length: 5 }, (_, rowIdx) => (
+                <tr key={`row-${rowIdx}`}>
+                    {Array.from({ length: 5 }, (_, colIdx) => (
+                        <td key={`col-${rowIdx}-${colIdx}`} className="px-5 py-4">
+                            <div className="h-4 animate-pulse rounded bg-zinc-800" />
+                        </td>
+                    ))}
+                </tr>
+            ));
+        }
+
+        if (filteredUsers.length === 0) {
+            return (
+                <tr>
+                    <td colSpan={5} className="px-5 py-8 text-center text-sm text-zinc-400">
+                        No hay usuarios para mostrar.
+                    </td>
+                </tr>
+            );
+        }
+
+        return filteredUsers.map((user) => (
+            <tr key={user.id} className="transition-colors hover:bg-zinc-900/80">
+                <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-zinc-100">
+                    {user.full_name || '—'}
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-300">
+                    {user.email}
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm">
+                    <Badge variant={roleBadgeVariant(user.role)}>
+                        {user.role}
+                    </Badge>
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm">
+                    <Badge variant={user.is_active ? "success" : "error"}>
+                        {user.is_active ? "Activo" : "Suspendido"}
+                    </Badge>
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-right">
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        className="border border-rose-500/30 bg-rose-500/15 text-rose-300 hover:border-rose-500/40 hover:bg-rose-500/20 hover:text-white"
+                        onClick={() => openDeleteModal(user)}
+                    >
+                        Eliminar
+                    </Button>
+                </td>
+            </tr>
+        ));
+    })();
+
     return (
         <AdminLayout>
             <section className="space-y-6">
@@ -121,54 +180,7 @@ export default function AdminUsuariosPage() {
                             </thead>
 
                             <tbody className="divide-y divide-zinc-800">
-                                {loading ? (
-                                    [...Array(5)].map((_, i) => (
-                                        <tr key={i}>
-                                            {[...Array(5)].map((__, j) => (
-                                                <td key={j} className="px-5 py-4">
-                                                    <div className="h-4 animate-pulse rounded bg-zinc-800" />
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))
-                                ) : filteredUsers.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="px-5 py-8 text-center text-sm text-zinc-400">
-                                            No hay usuarios para mostrar.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredUsers.map((user) => (
-                                        <tr key={user.id} className="transition-colors hover:bg-zinc-900/80">
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-zinc-100">
-                                                {user.full_name || '—'}
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-300">
-                                                {user.email}
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm">
-                                                <Badge variant={roleBadgeVariant(user.role)}>
-                                                    {user.role}
-                                                </Badge>
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm">
-                                                <Badge variant={user.is_active ? "success" : "error"}>
-                                                    {user.is_active ? "Activo" : "Suspendido"}
-                                                </Badge>
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-right">
-                                                <Button
-                                                    variant="danger"
-                                                    size="sm"
-                                                    className="border border-rose-500/30 bg-rose-500/15 text-rose-300 hover:border-rose-500/40 hover:bg-rose-500/20 hover:text-white"
-                                                    onClick={() => openDeleteModal(user)}
-                                                >
-                                                    Eliminar
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                {usersTableContent}
                             </tbody>
                         </table>
                     </div>
