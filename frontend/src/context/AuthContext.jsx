@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api, { setupInterceptors } from '@/lib/axios';
+import PropTypes from 'prop-types';
 
 const AuthContext = createContext();
 
@@ -26,7 +27,7 @@ export const AuthProvider = ({ children }) => {
   const handleLogout = useCallback(() => {
     setAccessToken(null);
     setUser(null);
-    if (typeof window !== 'undefined') {
+    if (typeof globalThis !== 'undefined') {
       // El refreshToken sí se guarda en localStorage por razones de persistencia en UX.
       // Si el refreshToken es robado, el backend puede invalidarlo/blacklisealo.
       localStorage.removeItem('refresh_token');
@@ -38,7 +39,7 @@ export const AuthProvider = ({ children }) => {
 
   const handleTokenRefresh = useCallback(async () => {
     // Si no tenemos refresh token, de plano no podemos refrescar
-    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+    const refreshToken = globalThis?.localStorage?.getItem('refresh_token') ?? null;
     if (!refreshToken) {
       handleLogout();
       return null;
@@ -83,6 +84,7 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
           // Falló pero handleTokenRefresh ya hace cleanup
           console.log("No se pudo auto-autenticar. Revisa tokens.");
+          throw err;
         }
       }
       setLoading(false);
@@ -104,7 +106,7 @@ export const AuthProvider = ({ children }) => {
 
       setUser(userData);
 
-      if (typeof window !== 'undefined') {
+      if (typeof globalThis !== 'undefined') {
         localStorage.setItem('refresh_token', refresh);
         localStorage.setItem('user_data', JSON.stringify(userData));
         const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
@@ -133,7 +135,7 @@ export const AuthProvider = ({ children }) => {
       setAccessToken(access);
       setUser(newUser);
 
-      if (typeof window !== 'undefined') {
+      if (typeof globalThis !== 'undefined') {
         localStorage.setItem('refresh_token', refresh);
         localStorage.setItem('user_data', JSON.stringify(newUser));
         const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
@@ -148,7 +150,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const contextValue = {
+  const contextValue = useMemo(() => ({
     user,
     accessToken,
     isAuthenticated: !!accessToken,
@@ -157,16 +159,27 @@ export const AuthProvider = ({ children }) => {
     register,
     logout: handleLogout,
     refreshToken: handleTokenRefresh,
-    // helpers de rol derivados del user
     isAdmin: user?.role === 'admin',
     isVendor: user?.role === 'vendor',
-  };
+  }), [
+    user,
+    accessToken,
+    loading,
+    login,
+    register,
+    handleLogout,
+    handleTokenRefresh,
+  ]);
 
   return (
     <AuthContext.Provider value={contextValue}>
       {!loading && children}
     </AuthContext.Provider>
   );
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 export const useAuth = () => {

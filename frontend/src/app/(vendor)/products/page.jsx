@@ -1,72 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import VendorProductCard from '@/components/product/VendorProductCard.jsx';
+import CustomSelect from '@/components/ui/CustomSelect.jsx';
 import { notify } from '@/utils/notify';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Plus, Package, X, ChevronDown } from 'lucide-react';
-
-// ── CustomSelect ──────────────────────────────────────────────────────────────
-
-function CustomSelect({ value, onChange, options, placeholder, id }) {
-  const [open, setOpen] = useState(false);
-  const ref = React.useRef(null);
-  const selected = options.find(o => o.value === value);
-
-  useEffect(() => {
-    function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    if (open) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [open]);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        id={id}
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="flex items-center justify-between gap-2 w-full h-10 px-3 rounded-lg text-sm font-medium bg-zinc-800/60 border border-zinc-700/60 text-zinc-200 hover:border-zinc-600 transition-all"
-      >
-        <span className={selected ? 'text-white' : 'text-zinc-500'}>
-          {selected?.label || placeholder}
-        </span>
-        <ChevronDown size={14} className={`transition-transform duration-200 text-zinc-500 ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {open && (
-        <div
-          className="absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden z-50"
-          style={{
-            background: 'rgba(18,18,18,0.98)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.7)',
-          }}
-        >
-          {options.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => { onChange(opt.value); setOpen(false); }}
-              className={`flex items-center w-full px-4 py-2.5 text-sm text-left transition-colors ${
-                value === opt.value
-                  ? 'text-[#e0ff4f] bg-[#e0ff4f]/8'
-                  : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              {opt.label}
-              {value === opt.value && <span className="ml-auto text-[#e0ff4f]">✓</span>}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+import { Search, Plus, Package, X } from 'lucide-react';
 
 // ── Empty / Publish Card ──────────────────────────────────────────────────────
 
@@ -96,9 +36,6 @@ function SkeletonRow() {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function VendorProductsPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sortFilter, setSortFilter] = useState('');
@@ -156,6 +93,16 @@ export default function VendorProductsPage() {
     { value: 'stock_asc', label: 'Stock: menor primero' },
   ];
 
+  const productCountText = (() => {
+    if (loading) return 'Cargando...';
+
+    const total = products.length;
+    const visible = filtered.length;
+    const suffix = total === 1 ? '' : 's';
+
+    return `${visible} de ${total} producto${suffix}`;
+  })();
+
   return (
     <main className="min-h-screen bg-[#0a0a0a] pb-20">
       {/* Header + Search */}
@@ -204,7 +151,7 @@ export default function VendorProductsPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-zinc-600">
-            {loading ? 'Cargando...' : `${filtered.length} de ${products.length} producto${products.length !== 1 ? 's' : ''}`}
+            {productCountText}
           </p>
           <Link
             href="/products/new"

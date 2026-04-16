@@ -46,6 +46,72 @@ export default function AdminProductsPage() {
         });
     }, [filterState, search, products]);
 
+    const tableContent = (() => {
+        if (loading) {
+            return Array.from({ length: 5 }, (_, rowIdx) => (
+                <tr key={`row-${rowIdx}`}>
+                    {Array.from({ length: 6 }, (_, colIdx) => (
+                        <td key={`col-${rowIdx}-${colIdx}`} className="px-5 py-4">
+                            <div className="h-4 animate-pulse rounded bg-zinc-800" />
+                        </td>
+                    ))}
+                </tr>
+            ));
+        }
+
+        if (filteredProducts.length === 0) {
+            return (
+                <tr>
+                    <td colSpan={6} className="px-5 py-8 text-center text-sm text-zinc-400">
+                        No hay productos para mostrar.
+                    </td>
+                </tr>
+            );
+        }
+
+        return filteredProducts.map((product) => (
+            <tr key={product.id} className="transition-colors hover:bg-zinc-900/80">
+                <td className="whitespace-nowrap px-5 py-4">
+                    <div className="h-10 w-10 overflow-hidden rounded-lg bg-zinc-800 border border-zinc-700">
+                        {product.main_image ? (
+                            <img
+                                src={product.main_image}
+                                alt={product.title}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <div className="h-full w-full flex items-center justify-center text-[10px] text-zinc-600">
+                                N/A
+                            </div>
+                        )}
+                    </div>
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-zinc-100 max-w-[200px] truncate">
+                    {product.title}
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-400">
+                    {product.seller_email || '-'}
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm font-mono text-zinc-300">
+                    ${Number(product.price || 0).toFixed(2)}
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-300">
+                    {product.stock}
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4">
+                    <Badge variant={product.is_active ? "success" : "error"}>
+                        {product.is_active ? "Activo" : "Inactivo"}
+                    </Badge>
+                </td>
+            </tr>
+        ));
+    })();
+
     return (
         <AdminLayout>
             <section className="space-y-6">
@@ -110,60 +176,7 @@ export default function AdminProductsPage() {
                             </thead>
 
                             <tbody className="divide-y divide-zinc-800">
-                                {loading ? (
-                                    [...Array(5)].map((_, i) => (
-                                        <tr key={i}>
-                                            {[...Array(6)].map((__, j) => (
-                                                <td key={j} className="px-5 py-4">
-                                                    <div className="h-4 animate-pulse rounded bg-zinc-800" />
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))
-                                ) : filteredProducts.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-5 py-8 text-center text-sm text-zinc-400">
-                                            No hay productos para mostrar.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredProducts.map((product) => (
-                                        <tr key={product.id} className="transition-colors hover:bg-zinc-900/80">
-                                            <td className="whitespace-nowrap px-5 py-4">
-                                                <div className="h-10 w-10 overflow-hidden rounded-lg bg-zinc-800 border border-zinc-700">
-                                                    {product.main_image ? (
-                                                        <img
-                                                            src={product.main_image}
-                                                            alt={product.title}
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="h-full w-full flex items-center justify-center text-[10px] text-zinc-600">
-                                                            N/A
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-zinc-100 max-w-[200px] truncate">
-                                                {product.title}
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-400">
-                                                {product.seller_email || '-'}
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm font-mono text-zinc-300">
-                                                ${Number(product.price || 0).toFixed(2)}
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-300">
-                                                {product.stock}
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4">
-                                                <Badge variant={product.is_active ? "success" : "error"}>
-                                                    {product.is_active ? "Activo" : "Inactivo"}
-                                                </Badge>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                {tableContent}
                             </tbody>
                         </table>
                     </div>

@@ -5,33 +5,33 @@ from django.contrib.auth import get_user_model
 class IsAdmin(permissions.BasePermission):
     # Permite acceso solo a usuarios con rol 'admin'.
     def has_permission(self, request, view):
-        User = get_user_model()
+        user = get_user_model()
         return bool(
             request.user
             and request.user.is_authenticated
-            and request.user.role == User.Role.ADMIN
+            and request.user.role == user.Role.ADMIN
         )
 
 
 class IsVendor(permissions.BasePermission):
     # Permite acceso solo a usuarios con rol 'vendedor'.
     def has_permission(self, request, view):
-        User = get_user_model()
+        user = get_user_model()
         return bool(
             request.user
             and request.user.is_authenticated
-            and request.user.role == User.Role.VENDOR
+            and request.user.role == user.Role.VENDOR
         )
 
 
 class IsVendorOrAdmin(permissions.BasePermission):
     # Permite acceso a usuarios con rol 'vendedor' o 'admin'.
     def has_permission(self, request, view):
-        User = get_user_model()
+        user = get_user_model()
         return bool(
             request.user
             and request.user.is_authenticated
-            and request.user.role in [User.Role.VENDOR, User.Role.ADMIN]
+            and request.user.role in [user.Role.VENDOR, user.Role.ADMIN]
         )
 
 
@@ -41,8 +41,8 @@ class IsOwnerOrAdmin(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if not bool(request.user and request.user.is_authenticated):
             return False
-        User = get_user_model()
-        if request.user.role == User.Role.ADMIN:
+        user = get_user_model()
+        if request.user.role == user.Role.ADMIN:
             return True
         owner = getattr(obj, 'seller', getattr(obj, 'vendor', None))
         return owner == request.user
@@ -53,7 +53,7 @@ class IsUserOwnerOrAdmin(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if not bool(request.user and request.user.is_authenticated):
             return False
-        User = get_user_model()
-        if request.user.role == User.Role.ADMIN:
+        user = get_user_model()
+        if request.user.role == user.Role.ADMIN:
             return True
         return obj == request.user

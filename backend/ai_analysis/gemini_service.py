@@ -45,8 +45,16 @@ def analyze_product_image(image_bytes, mime_type):
         response = model.generate_content([prompt, image_part])
 
         text = response.text.strip()
-        text = re.sub(r"^```(?:json)?\s*", "", text)
-        text = re.sub(r"\s*```$", "", text)
+
+        text = text.strip()
+
+        if text.startswith("```"):
+            text = text.split("\n", 1)[-1]
+
+        if text.endswith("```"):
+            text = text.rsplit("```", 1)[0]
+
+        text = text.strip()
 
         data = json.loads(text)
 

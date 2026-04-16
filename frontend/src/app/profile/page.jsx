@@ -4,22 +4,14 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
 import { notify } from '@/utils/notify';
-
-
-function formatAddress(addr) {
-    // Campos en inglés post-refactoring
-    const parts = [addr.street, addr.street_number, addr.city, addr.state, addr.postal_code]
-        .filter(Boolean);
-    return parts.join(', ');
-}
+import PropTypes from 'prop-types';
 
 // ─── Componente de tarjeta de dirección ───────────────────────────────────────
 
 function AddressCard({ address, onDelete, onSetDefault }) {
     return (
-        <div className={`rounded-2xl border p-4 shadow-sm transition hover:shadow-md ${
-            address.is_default ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-900/50'
-        }`}>
+        <div className={`rounded-2xl border p-4 shadow-sm transition hover:shadow-md ${address.is_default ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-900/50'
+            }`}>
             <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-zinc-100 truncate">
@@ -54,6 +46,20 @@ function AddressCard({ address, onDelete, onSetDefault }) {
         </div>
     );
 }
+
+AddressCard.propTypes = {
+    address: PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        street: PropTypes.string.isRequired,
+        street_number: PropTypes.string.isRequired,
+        city: PropTypes.string.isRequired,
+        state: PropTypes.string.isRequired,
+        postal_code: PropTypes.string.isRequired,
+        is_default: PropTypes.bool.isRequired,
+    }).isRequired,
+    onDelete: PropTypes.func.isRequired,
+    onSetDefault: PropTypes.func.isRequired,
+};
 
 // ─── Formulario nueva dirección ───────────────────────────────────────────────
 
@@ -105,29 +111,30 @@ function AddressForm({ onSave, onCancel }) {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-500">Calle *</label>
-                    <input name="street" value={form.street} onChange={handleChange} placeholder="Av. Insurgentes" className={inputClass} required />
+                    <label htmlFor="street" className="text-xs font-semibold text-zinc-500">Calle *</label>
+                    <input id="street" name="street" value={form.street} onChange={handleChange} placeholder="Av. Insurgentes" className={inputClass} required />
                 </div>
                 <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-500">Número *</label>
-                    <input name="street_number" value={form.street_number} onChange={handleChange} placeholder="123" className={inputClass} />
+                    <label htmlFor="street_number" className="text-xs font-semibold text-zinc-500">Número *</label>
+                    <input id="street_number" name="street_number" value={form.street_number} onChange={handleChange} placeholder="123" className={inputClass} />
                 </div>
                 <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-500">Ciudad *</label>
-                    <input name="city" value={form.city} onChange={handleChange} placeholder="CDMX" className={inputClass} required />
+                    <label htmlFor="city" className="text-xs font-semibold text-zinc-500">Ciudad *</label>
+                    <input id="city" name="city" value={form.city} onChange={handleChange} placeholder="CDMX" className={inputClass} required />
                 </div>
                 <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-500">Estado *</label>
-                    <input name="state" value={form.state} onChange={handleChange} placeholder="Ciudad de México" className={inputClass} required />
+                    <label htmlFor="state" className="text-xs font-semibold text-zinc-500">Estado *</label>
+                    <input id="state" name="state" value={form.state} onChange={handleChange} placeholder="Ciudad de México" className={inputClass} required />
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
-                    <label className="text-xs font-semibold text-zinc-500">Código Postal *</label>
-                    <input name="postal_code" value={form.postal_code} onChange={handleChange} placeholder="06600" className={inputClass} required />
+                    <label htmlFor="postal_code" className="text-xs font-semibold text-zinc-500">Código Postal *</label>
+                    <input id="postal_code" name="postal_code" value={form.postal_code} onChange={handleChange} placeholder="06600" className={inputClass} required />
                 </div>
             </div>
 
-            <label className="flex items-center gap-3 cursor-pointer">
+            <label htmlFor="is_default" className="flex items-center gap-3 cursor-pointer">
                 <input
+                    id="is_default"
                     type="checkbox"
                     name="is_default"
                     checked={form.is_default}
@@ -158,6 +165,11 @@ function AddressForm({ onSave, onCancel }) {
     );
 }
 
+AddressForm.propTypes = {
+    onSave: PropTypes.func.isRequired,
+    onCancel: PropTypes.func.isRequired,
+};
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -185,7 +197,7 @@ export default function ProfilePage() {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('¿Eliminar esta dirección?')) return;
+        if (!globalThis.confirm('¿Eliminar esta dirección?')) return;
         try {
             await api.delete(`/users/addresses/${id}/`);
             setAddresses(prev => prev.filter(a => a.id !== id));
@@ -197,7 +209,6 @@ export default function ProfilePage() {
 
     const handleSetDefault = async (id) => {
         try {
-            const res = await api.patch(`/users/addresses/${id}/`, { is_default: true });
             setAddresses(prev =>
                 prev.map(a => ({ ...a, is_default: a.id === id }))
             );
@@ -206,6 +217,44 @@ export default function ProfilePage() {
             notify.error('Error', err.response?.data?.detail || 'No se pudo actualizar la dirección.');
         }
     };
+
+    const addressContent = (() => {
+        if (loading) {
+            return (
+                <div className="space-y-3">
+                    {Array.from({ length: 2 }, (_, idx) => (
+                        <div
+                            key={`skeleton-${idx}`}
+                            className="h-20 animate-pulse rounded-2xl border border-zinc-800 bg-zinc-900/50"
+                        />
+                    ))}
+                </div>
+            );
+        }
+
+        if (addresses.length === 0) {
+            return (
+                <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40 p-8 text-center shadow-sm">
+                    <p className="text-sm text-zinc-500">
+                        Todavía no tienes direcciones registradas.
+                    </p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="space-y-4">
+                {addresses.map(addr => (
+                    <AddressCard
+                        key={addr.id}
+                        address={addr}
+                        onDelete={handleDelete}
+                        onSetDefault={handleSetDefault}
+                    />
+                ))}
+            </div>
+        );
+    })();
 
     return (
         <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
@@ -259,29 +308,7 @@ export default function ProfilePage() {
                     </div>
                 )}
 
-                {/* Lista de direcciones */}
-                {loading ? (
-                    <div className="space-y-3">
-                        {[1, 2].map(i => (
-                            <div key={i} className="h-20 animate-pulse rounded-2xl border border-zinc-800 bg-zinc-900/50" />
-                        ))}
-                    </div>
-                ) : addresses.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40 p-8 text-center shadow-sm">
-                        <p className="text-sm text-zinc-500">Todavía no tienes direcciones registradas.</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {addresses.map(addr => (
-                            <AddressCard
-                                key={addr.id}
-                                address={addr}
-                                onDelete={handleDelete}
-                                onSetDefault={handleSetDefault}
-                            />
-                        ))}
-                    </div>
-                )}
+                {addressContent}
             </section>
         </main>
     );
