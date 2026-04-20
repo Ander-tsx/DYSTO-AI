@@ -1,3 +1,5 @@
+from loguru import logger
+
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -17,6 +19,8 @@ class CheckoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
+        logger.debug(f"[CheckoutView] Checkout initiated: user_id={request.user.id}")
+
         serializer = CheckoutSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         address_id = serializer.validated_data['address_id']
@@ -24,6 +28,7 @@ class CheckoutView(APIView):
         try:
             cart = request.user.cart
         except Cart.DoesNotExist:
+            logger.warning(f"[CheckoutView] No cart found: user_id={request.user.id}")
             return Response(
                 {"detail": "El usuario no tiene un carrito."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -31,6 +36,7 @@ class CheckoutView(APIView):
 
         cart_items = cart.items.select_related('product').all()
         if not cart_items.exists():
+            logger.warning(f"[CheckoutView] Checkout with empty cart: user_id={request.user.id}")
             return Response(
                 {"detail": "El carrito está vacío."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -46,6 +52,10 @@ class CheckoutView(APIView):
                 )
 
         if errors:
+            logger.warning(
+                f"[CheckoutView] Pre-validation stock error: user_id={request.user.id}, "
+                f"products_with_errors={list(errors.keys())}"
+            )
             return Response(
                 {"detail": "Stock insuficiente para algunos productos.", "errors": errors},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -74,6 +84,11 @@ class CheckoutView(APIView):
                 for item in cart_items:
                     product = locked_products[item.product_id]
                     if product.stock < item.quantity:
+                        logger.warning(
+                            f"[CheckoutView] Stock race condition detected: "
+                            f"product_id={product.id}, available={product.stock}, "
+                            f"requested={item.quantity}, user_id={request.user.id}"
+                        )
                         raise ValidationError({
                             "detail": "Stock insuficiente",
                             "errors": {
@@ -117,12 +132,22 @@ class CheckoutView(APIView):
                 {"detail": "Stock insuficiente."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except Exception:
+        except Exception as exc:
+            logger.error(
+                f"[CheckoutView] Unexpected error during checkout: user_id={request.user.id}, "
+                f"error={type(exc).__name__}: {exc}"
+            )
+            logger.exception(exc)
             return Response(
                 {"detail": "Error inesperado procesando la compra."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        logger.info(
+            f"[CheckoutView] Order completed: order_id={order.id}, "
+            f"order_number={order.order_number}, total={order.total}, "
+            f"user_id={request.user.id}"
+        )
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
 

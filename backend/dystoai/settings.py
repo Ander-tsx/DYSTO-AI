@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
+from loguru import logger
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -160,4 +161,53 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
         "LOCATION": "ai-analysis-cache",
     }
+}
+
+# Disable Django's default logging configuration so Loguru takes full control
+LOGGING_CONFIG = None
+
+# Loguru configuration: two separate sinks — debug events and errors
+LOGURU_LOGGING = {
+    "handlers": [
+        {
+            # Captures DEBUG-level messages only
+            "sink": BASE_DIR / "logs/debug.log",
+            "level": "DEBUG",
+            "filter": lambda record: record["level"].no <= logger.level("DEBUG").no,
+            "format": (
+                "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | "
+                "{name}: {function}:{line} - {message}"
+            ),
+            "rotation": "10 MB",
+            "retention": "7 days",
+            "compression": "zip",
+        },
+        {
+            # Captures ERROR and CRITICAL messages with full backtrace
+            "sink": BASE_DIR / "logs/error.log",
+            "level": "ERROR",
+            "filter": lambda record: record["level"].no >= logger.level("ERROR").no,
+            "format": (
+                "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | "
+                "{name}: {function}:{line} - {message}"
+            ),
+            "rotation": "10 MB",
+            "retention": "7 days",
+            "compression": "zip",
+            "backtrace": True,
+            "diagnose": True,
+        },
+    ]
+}
+
+logger.configure(**LOGURU_LOGGING)
+
+# Bridge Python's standard logging (Django, DRF, simplejwt, etc.) into Loguru
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "loguru": {"class": "dystoai.interceptor.InterceptorHandler"}
+    },
+    "root": {"handlers": ["loguru"], "level": "DEBUG"},
 }

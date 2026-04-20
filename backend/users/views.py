@@ -1,3 +1,5 @@
+from loguru import logger
+
 from rest_framework import generics, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -32,6 +34,9 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
+        email = request.data.get("email", "N/A")
+        logger.debug(f"[RegisterView] Registration attempt: email={email}")
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -39,6 +44,7 @@ class RegisterView(generics.CreateAPIView):
         # Generar tokens JWT para el nuevo usuario
         refresh = RefreshToken.for_user(user)
 
+        logger.info(f"[RegisterView] User registered successfully: id={user.id}, email={user.email}")
         return Response(
             {
                 "access": str(refresh.access_token),
@@ -59,11 +65,13 @@ class RegisterView(generics.CreateAPIView):
 class LoginView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
+        email = request.data.get("email", "N/A")
+        logger.debug(f"[LoginView] Login attempt: email={email}")
+
         response = super().post(request, *args, **kwargs)
 
         # Solo adjuntar datos del usuario si la autenticación fue exitosa
         if response.status_code == status.HTTP_200_OK and "access" in response.data:
-            email = request.data.get("email")
             user = User.objects.filter(email__iexact=email).first()
 
             if user:
@@ -74,6 +82,9 @@ class LoginView(TokenObtainPairView):
                     "last_name": user.last_name,
                     "role": user.role,
                 }
+                logger.info(f"[LoginView] Login successful: id={user.id}, email={user.email}")
+        else:
+            logger.warning(f"[LoginView] Failed login attempt: email={email}")
 
         return response
 
@@ -86,6 +97,7 @@ class LogoutView(APIView):
         refresh_token = request.data.get("refresh")
 
         if not refresh_token:
+            logger.warning(f"[LogoutView] Logout failed — refresh token not provided: user_id={request.user.id}")
             return Response(
                 {"detail": "El token de refresco es requerido."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -95,11 +107,13 @@ class LogoutView(APIView):
             token = RefreshToken(refresh_token)
             token.blacklist()
         except TokenError:
+            logger.warning(f"[LogoutView] Invalid refresh token provided: user_id={request.user.id}")
             return Response(
                 {"detail": "El token proporcionado es inválido."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        logger.info(f"[LogoutView] Session closed: user_id={request.user.id}")
         return Response(
             {"detail": "Sesión cerrada correctamente."},
             status=status.HTTP_200_OK,
@@ -130,7 +144,15 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         if instance == self.request.user:
+            logger.warning(
+                f"[UserDetailView] Admin attempted self-deletion: admin_id={self.request.user.id}"
+            )
             raise PermissionDenied("Un administrador no puede eliminarse a sí mismo.")
+
+        logger.info(
+            f"[UserDetailView] User deleted by admin: target_id={instance.id}, "
+            f"target_email={instance.email}, admin_id={self.request.user.id}"
+        )
         instance.delete()
 
 
@@ -140,6 +162,8 @@ class CreateVendorView(generics.CreateAPIView):
     permission_classes = [IsAdmin]
 
     def create(self, request, *args, **kwargs):
+        logger.debug(f"[CreateVendorView] Admin creating vendor: admin_id={request.user.id}")
+
         # Asignar rol vendor y una contraseña aleatoria no utilizable;
         # el vendedor establecerá su propia contraseña via el token de activación.
         data = request.data.copy()
@@ -158,6 +182,10 @@ class CreateVendorView(generics.CreateAPIView):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
 
+        logger.info(
+            f"[CreateVendorView] Vendor created: id={user.id}, email={user.email}, "
+            f"created_by=admin_id={request.user.id}"
+        )
         return Response(
             {
                 "detail": "Vendedor creado exitosamente. Comparta el token de activación con el usuario para que establezca su contraseña.",
@@ -202,4 +230,9 @@ class AddressViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=201)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        address = serializer.save(user=self.request.user)
+        logger.info(f"[AddressViewSet] Address created: id={address.id}, user_id={self.request.user.id}")
+
+    def perform_destroy(self, instance):
+        logger.info(f"[AddressViewSet] Address deleted: id={instance.id}, user_id={self.request.user.id}")
+        instance.delete()
