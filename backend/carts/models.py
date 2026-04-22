@@ -7,6 +7,15 @@ from logbook.decorators import audit_log
 
 @audit_log
 class Cart(models.Model):
+    """
+    Modelo que representa el carrito de compras de un usuario.
+
+    Está asociado 1-a-1 con el modelo de usuario, por lo que cada usuario 
+    tiene un único carrito activo a la vez.
+
+    Args:
+        models.Model: Clase base de Django para modelos de base de datos.
+    """
     # Carrito de compras asociado 1-a-1 con el usuario.
 
     user = models.OneToOneField(
@@ -27,6 +36,14 @@ class Cart(models.Model):
 
 @audit_log
 class CartItem(models.Model):
+    """
+    Modelo que representa un artículo individual agregado a un carrito de compras.
+
+    Mantiene la relación entre un carrito específico, el producto agregado y la cantidad.
+
+    Args:
+        models.Model: Clase base de Django.
+    """
     # Elemento individual dentro de un carrito.
 
     cart = models.ForeignKey(
@@ -53,6 +70,15 @@ class CartItem(models.Model):
 
     @property
     def subtotal(self):
+        """
+        Calcula y devuelve el costo subtotal de este elemento del carrito.
+
+        Args:
+            None
+
+        Returns:
+            Decimal: El resultado de multiplicar el precio del producto por su cantidad.
+        """
         # Calcula el subtotal: precio del producto * cantidad
         return self.product.price * self.quantity
 

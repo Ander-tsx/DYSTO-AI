@@ -16,11 +16,37 @@ MAX_SIZE_MB = 10
 
 
 class AnalyzeImageView(APIView):
+    """
+    Vista para procesar y analizar imágenes de productos utilizando inteligencia artificial.
+
+    Recibe una imagen, valida que sea apta mediante la API de Gemini (que no contenga
+    personas/animales y corresponda a un producto), y si es válida, la sube a Cloudinary.
+    Aplica un límite de tasa (rate limit) de 5 análisis por hora por usuario.
+
+    Args:
+        request (Request): La solicitud HTTP POST conteniendo la imagen en 'image'.
+        *args: Argumentos posicionales.
+        **kwargs: Argumentos de palabras clave.
+
+    Returns:
+        Response: La URL de la imagen en Cloudinary y el análisis extraído por Gemini.
+    """
     # Recibe una imagen, la valida con Gemini y la sube a Cloudinary si es apta.
     # Rate limit: 10 análisis por hora por usuario.
     permission_classes = [IsVendorOrAdmin]
 
     def post(self, request):
+        """
+        Procesa la petición POST con la imagen a analizar.
+
+        Valida formato, tamaño y límite de peticiones antes de enviarla a la API de Gemini.
+
+        Args:
+            request (Request): La petición HTTP.
+
+        Returns:
+            Response: Resultado del análisis o error de validación.
+        """
         user = request.user
         cache_key = f"ai_analysis_{user.id}"
 
