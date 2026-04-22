@@ -9,10 +9,11 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 
 from .models import Order, OrderItem
+from .db_views import OrderListDBView
 from users.models import Address
 from products.models import Product
 from carts.models import Cart
-from .serializers import OrderSerializer, CheckoutSerializer
+from .serializers import OrderSerializer, OrderListViewSerializer, CheckoutSerializer
 
 
 class CheckoutView(APIView):
@@ -181,6 +182,9 @@ class OrderListView(generics.ListAPIView):
     """
     Vista para listar los pedidos (órdenes) realizados por el usuario autenticado.
 
+    Utiliza la vista SQL vw_order_list que pre-calcula el email del comprador
+    y la cantidad de items/unidades por orden.
+
     Args:
         request (Request): La solicitud HTTP entrante.
         *args: Argumentos posicionales.
@@ -189,18 +193,18 @@ class OrderListView(generics.ListAPIView):
     Returns:
         Response: Una lista paginada de las órdenes del usuario.
     """
-    # Lista los pedidos del usuario autenticado.
-    serializer_class = OrderSerializer
+    # Usa la vista SQL vw_order_list en lugar del modelo Order directamente.
+    serializer_class = OrderListViewSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """
-        Filtra las órdenes para que el usuario solo pueda ver las suyas.
+        Filtra las órdenes desde la vista SQL para que el usuario solo vea las suyas.
 
         Returns:
             QuerySet: Órdenes pertenecientes al usuario autenticado.
         """
-        return Order.objects.filter(user=self.request.user)
+        return OrderListDBView.objects.filter(user_id=self.request.user.id)
 
 
 class OrderDetailView(generics.RetrieveAPIView):

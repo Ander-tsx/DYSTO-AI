@@ -16,12 +16,8 @@ const formatDate = (value) => {
     });
 };
 
-// Campos renombrados: item.cantidad → item.quantity (post-refactoring)
-const getItemsCount = (items = []) =>
-    items.reduce((acc, item) => acc + Number(item?.quantity || 0), 0);
-
 export default function OrderSummaryCard({ order }) {
-    const count = getItemsCount(order?.items || []);
+    const count = order?.total_quantity ?? 0;
 
     return (
         <Link
