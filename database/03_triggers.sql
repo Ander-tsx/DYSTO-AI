@@ -52,6 +52,7 @@ BEGIN
                 'additional_images', NEW.additional_images,
                 'metadata', NEW.metadata,
                 'edit_allowed', NEW.edit_allowed,
+                'is_active_admin', NEW.is_active_admin,
                 'tags', NEW.tags,
                 'units_sold', NEW.units_sold
             )
@@ -99,6 +100,10 @@ BEGIN
 
     IF OLD.edit_allowed <> NEW.edit_allowed THEN
         SET changes = JSON_SET(changes, '$.edit_allowed', JSON_OBJECT('before', OLD.edit_allowed, 'after', NEW.edit_allowed));
+    END IF;
+
+    IF OLD.is_active_admin <> NEW.is_active_admin THEN
+        SET changes = JSON_SET(changes, '$.is_active_admin', JSON_OBJECT('before', OLD.is_active_admin, 'after', NEW.is_active_admin));
     END IF;
 
     IF JSON_LENGTH(changes) > 0 THEN
@@ -158,6 +163,7 @@ BEGIN
                 'additional_images', OLD.additional_images,
                 'metadata', OLD.metadata,
                 'edit_allowed', OLD.edit_allowed,
+                'is_active_admin', OLD.is_active_admin,
                 'tags', OLD.tags,
                 'units_sold', OLD.units_sold
             )
