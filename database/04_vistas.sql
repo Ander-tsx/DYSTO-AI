@@ -28,6 +28,7 @@ SELECT
         WHEN p.stock > 0 THEN TRUE
         ELSE FALSE
     END               AS is_active,
+    p.is_active_admin,
     p.created_at
 FROM products_product   AS p
 INNER JOIN users_customuser AS u

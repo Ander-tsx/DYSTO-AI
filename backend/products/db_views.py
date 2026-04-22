@@ -23,6 +23,7 @@ class ProductPublicListDBView(models.Model):
     main_image = models.URLField(max_length=500)
     units_sold = models.PositiveIntegerField()
     is_active = models.BooleanField()
+    is_active_admin = models.BooleanField()
     created_at = models.DateTimeField()
 
     class Meta:
