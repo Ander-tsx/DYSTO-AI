@@ -1,13 +1,9 @@
--- DB-01 | Poblacion manual basica
--- Estilo: sentencias simples, insert uno por uno
+-- DB-01 | Poblacion de datos inicial para pruebas de desarrollo
 
 USE dysto_ai;
 
 START TRANSACTION;
 
--- =========================================================
--- 0) LIMPIEZA BASICA DE DATOS DEMO
--- =========================================================
 
 DELETE FROM orders_orderitem
 WHERE order_id IN (
@@ -79,7 +75,7 @@ DELETE FROM users_customuser
 WHERE email = 'admin@dysto.ai' OR email LIKE 'vendor%@dysto.ai' OR email LIKE 'cliente%@dysto.ai';
 
 -- =========================================================
--- 1) USUARIOS (UNO POR UNO)
+-- 1) USUARIOS 
 -- Password para todos: DystoDemo2026!
 -- =========================================================
 
@@ -117,7 +113,7 @@ INSERT INTO users_customuser (password,last_login,is_superuser,first_name,last_n
 VALUES ('pbkdf2_sha256$600000$idyUfcFKPpz30wGdbVXhlO$Dasxsyp8AMAdrlk3/ADWGtTK1eZyHduF1JPWfi8eSdQ=',NULL,0,'Diego','Mendoza',0,1,DATE_SUB(NOW(), INTERVAL 340 DAY),'vendor10@dysto.ai','vendor','+52 99 2000 0010','https://images.unsplash.com/photo-1463453091185-61582044d556',DATE_SUB(NOW(), INTERVAL 340 DAY));
 
 -- =========================================================
--- 2) DIRECCIONES (UNO POR UNO)
+-- 2) DIRECCIONES 
 -- =========================================================
 
 INSERT INTO users_address (user_id,street,street_number,city,state,postal_code,is_default,created_at,updated_at)
@@ -154,7 +150,7 @@ INSERT INTO users_address (user_id,street,street_number,city,state,postal_code,i
 VALUES ((SELECT id FROM users_customuser WHERE email='vendor10@dysto.ai'),'Avenida Tulum','901','Cancun','Quintana Roo','77500',1,DATE_SUB(NOW(), INTERVAL 330 DAY),DATE_SUB(NOW(), INTERVAL 1 DAY));
 
 -- =========================================================
--- 3) PRODUCTOS (UNO POR UNO)
+-- 3) PRODUCTOS 
 -- =========================================================
 
 INSERT INTO products_product (seller_id,category,title,description,price,stock,main_image,additional_images,metadata,edit_allowed,created_at,updated_at,tags,units_sold)
@@ -224,7 +220,7 @@ INSERT INTO products_product (seller_id,category,title,description,price,stock,m
 VALUES ((SELECT id FROM users_customuser WHERE email='vendor04@dysto.ai'),'Hogar','Escoba de Microfibra con Repuesto','Escoba para piso con cabezal giratorio.',249.00,28,'https://m.media-amazon.com/images/I/81pyye40tnL._AC_SY300_SX300_QL70_ML2_.jpg',JSON_ARRAY('https://m.media-amazon.com/images/I/81tlM4d79oL._AC_SX679_.jpg','https://m.media-amazon.com/images/I/81DzTQ1Kp6L._AC_SX679_.jpg'),JSON_OBJECT('tipo','limpieza','seed_tag','DB-01','currency','MXN'),1,DATE_SUB(NOW(), INTERVAL 205 DAY),DATE_SUB(NOW(), INTERVAL 4 DAY),JSON_ARRAY('limpieza','hogar'),44);
 
 -- =========================================================
--- 4) CARRITOS (UNO POR UNO)
+-- 4) CARRITOS 
 -- =========================================================
 
 INSERT INTO carts_cart (user_id,created_at,updated_at)
@@ -268,7 +264,7 @@ VALUES (
 );
 
 -- =========================================================
--- 5) PEDIDOS (UNO POR UNO)
+-- 5) PEDIDOS 
 -- =========================================================
 
 INSERT INTO orders_order (user_id,address_snapshot,total,status,order_number,created_at)
