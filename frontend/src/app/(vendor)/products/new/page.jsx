@@ -137,7 +137,7 @@ export default function NewProductPage() {
       return;
     }
     const formData = new FormData();
-    formData.append('image', images[0]);
+    images.forEach(img => formData.append('images', img));
     setLoadingAI(true);
     try {
       const res = await api.post('/ai/analyze/', formData, {
@@ -149,7 +149,10 @@ export default function NewProductPage() {
         return;
       }
 
-      setAiData(res.data);
+      setAiData({
+        ...res.data,
+        additional_images: res.data.additional_images || []
+      });
       const ai = res.data.analysis;
 
       setForm({
@@ -194,9 +197,21 @@ export default function NewProductPage() {
       if (aiData?.image_url) {
         formData.append('main_image', aiData.image_url);
       }
+      if (aiData?.analysis) {
+        formData.append('metadata', JSON.stringify(aiData.analysis));
+      }
 
-      images.forEach(img => formData.append('images', img));
-      images.slice(1).forEach(img => formData.append('additional_images', img));
+      if (aiData?.additional_images && aiData.additional_images.length > 0) {
+        formData.append('additional_images', JSON.stringify(aiData.additional_images));
+      } else {
+        images.slice(1).forEach(img => formData.append('additional_images', img));
+      }
+
+      // If AI was used, we don't need to send the files again as 'images' unless we want to, 
+      // but let's just not send them if AI uploaded them, or just let backend ignore them.
+      if (!aiData?.image_url) {
+        images.forEach(img => formData.append('images', img));
+      }
 
       const tagsArray = form.tags.split(',').map(t => t.trim()).filter(Boolean);
       formData.append('tags', JSON.stringify(tagsArray));
@@ -278,7 +293,7 @@ export default function NewProductPage() {
             {images.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {images.map((img, i) => (
-                  <div key={img} className="relative group rounded-xl overflow-hidden border border-zinc-800 aspect-square">
+                  <div key={`img-${i}`} className="relative group rounded-xl overflow-hidden border border-zinc-800 aspect-square">
                     <img
                       src={URL.createObjectURL(img)}
                       alt={`Preview ${img}`}
@@ -366,7 +381,7 @@ export default function NewProductPage() {
                 onChange={val => setForm(f => ({ ...f, category: val }))}
                 options={CATEGORY_OPTIONS}
                 placeholder="Selecciona una categoría"
-                label={`Categoría${aiSuggested ? ' ✨' : ''}`}
+                label={`Categoría${aiSuggested ? '' : ''}`}
                 icon={LayoutGrid}
                 buttonClassName={FORM_SELECT_BTN}
               />
@@ -440,7 +455,7 @@ export default function NewProductPage() {
                   </>
                 ) : (
                   <>
-                    <Send size={16} />
+
                     Publicar Producto
                   </>
                 )}

@@ -137,7 +137,7 @@ export default function ImageGallery({ mainImage, images = [], title = 'Producto
               <img
                 src={activeImage}
                 alt={`${title} — imagen ${activeIndex + 1}`}
-                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-300"
+                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
                 onError={() => setImgError((prev) => ({ ...prev, [activeImage]: true }))}
               />
             )}

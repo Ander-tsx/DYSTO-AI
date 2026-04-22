@@ -6,13 +6,15 @@ import Button from "../../../components/ui/Button";
 import Badge from "../../../components/ui/Badge";
 import Modal from "../../../components/ui/Modal";
 import api from "@/lib/axios";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminUsuariosPage() {
+    const { user: currentUser } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isToggleModalOpen, setIsToggleModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
 
     useEffect(() => {
@@ -42,25 +44,26 @@ export default function AdminUsuariosPage() {
         );
     });
 
-    const openDeleteModal = (user) => {
+    const openToggleModal = (user) => {
         setSelectedUser(user);
-        setIsDeleteModalOpen(true);
+        setIsToggleModalOpen(true);
     };
 
-    const closeDeleteModal = () => {
-        setIsDeleteModalOpen(false);
+    const closeToggleModal = () => {
+        setIsToggleModalOpen(false);
         setSelectedUser(null);
     };
 
-    const confirmDeleteUser = async () => {
+    const confirmToggleUser = async () => {
         if (!selectedUser) return;
         try {
-            await api.delete(`/users/${selectedUser.id}/`);
-            setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
+            const newStatus = !selectedUser.is_active;
+            await api.patch(`/users/${selectedUser.id}/`, { is_active: newStatus });
+            setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, is_active: newStatus } : u));
         } catch (err) {
-            setError(err.response?.data?.detail || 'No se pudo eliminar el usuario.');
+            setError(err.response?.data?.detail || 'No se pudo actualizar el estado del usuario.');
         } finally {
-            closeDeleteModal();
+            closeToggleModal();
         }
     };
 
@@ -117,14 +120,19 @@ export default function AdminUsuariosPage() {
                 </td>
 
                 <td className="whitespace-nowrap px-5 py-4 text-right">
-                    <Button
-                        variant="danger"
-                        size="sm"
-                        className="border border-rose-500/30 bg-rose-500/15 text-rose-300 hover:border-rose-500/40 hover:bg-rose-500/20 hover:text-white"
-                        onClick={() => openDeleteModal(user)}
-                    >
-                        Eliminar
-                    </Button>
+                    {currentUser?.id !== user.id && currentUser?.email !== user.email && (
+                        <Button
+                            variant={user.is_active ? "danger" : "default"}
+                            size="sm"
+                            className={user.is_active 
+                                ? "border border-rose-500/30 bg-rose-500/15 text-rose-300 hover:border-rose-500/40 hover:bg-rose-500/20 hover:text-white"
+                                : "border border-cyan-500/30 bg-cyan-500/15 text-cyan-300 hover:border-cyan-500/40 hover:bg-cyan-500/20 hover:text-white"
+                            }
+                            onClick={() => openToggleModal(user)}
+                        >
+                            {user.is_active ? "Desactivar" : "Activar"}
+                        </Button>
+                    )}
                 </td>
             </tr>
         ));
@@ -187,36 +195,39 @@ export default function AdminUsuariosPage() {
                 </div>
             </section>
 
-            {/* Modal confirmación de eliminación */}
+            {/* Modal confirmación de cambio de estado */}
             <Modal
-                isOpen={isDeleteModalOpen}
-                onClose={closeDeleteModal}
-                title="Eliminar Usuario"
+                isOpen={isToggleModalOpen}
+                onClose={closeToggleModal}
+                title={selectedUser?.is_active ? "Desactivar Usuario" : "Activar Usuario"}
                 footer={
                     <div className="flex justify-end gap-3">
                         <Button
                             variant="ghost"
                             size="sm"
                             className="border-zinc-700 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-800/80 hover:text-zinc-100"
-                            onClick={closeDeleteModal}
+                            onClick={closeToggleModal}
                         >
                             Cancelar
                         </Button>
                         <Button
-                            variant="danger"
+                            variant={selectedUser?.is_active ? "danger" : "default"}
                             size="sm"
-                            className="border border-rose-500/30 bg-rose-500/15 text-rose-300 hover:border-rose-500/40 hover:bg-rose-500/20 hover:text-white"
-                            onClick={confirmDeleteUser}
+                            className={selectedUser?.is_active
+                                ? "border border-rose-500/30 bg-rose-500/15 text-rose-300 hover:border-rose-500/40 hover:bg-rose-500/20 hover:text-white"
+                                : "border border-cyan-500/30 bg-cyan-500/15 text-cyan-300 hover:border-cyan-500/40 hover:bg-cyan-500/20 hover:text-white"
+                            }
+                            onClick={confirmToggleUser}
                         >
-                            Eliminar
+                            {selectedUser?.is_active ? "Desactivar" : "Activar"}
                         </Button>
                     </div>
                 }
             >
                 <p className="text-sm text-zinc-200">
                     {selectedUser
-                        ? `¿Estás seguro de eliminar a ${selectedUser.full_name || selectedUser.email}?`
-                        : '¿Estás seguro de eliminar este usuario?'}
+                        ? `¿Estás seguro de ${selectedUser.is_active ? 'desactivar' : 'activar'} a ${selectedUser.full_name || selectedUser.email}?`
+                        : '¿Estás seguro?'}
                 </p>
             </Modal>
         </AdminLayout>

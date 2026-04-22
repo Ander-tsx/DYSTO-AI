@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import api from '@/lib/axios';
 import { useAuth } from './AuthContext.jsx';
+import { notify } from '@/utils/notify';
 import PropTypes from 'prop-types';
 
 const CartContext = createContext();
@@ -52,7 +53,7 @@ export const CartProvider = ({ children }) => {
             const res = await api.patch(`/carts/items/${itemId}/`, { quantity });
             processCart(res.data);
         } catch (err) {
-            alert(err.response?.data?.detail);
+            notify.error('Error', err.response?.data?.detail || 'No se pudo actualizar el carrito.');
         }
     };
 

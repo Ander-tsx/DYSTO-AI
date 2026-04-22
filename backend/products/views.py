@@ -56,7 +56,7 @@ class ProductPublicListView(generics.ListAPIView):
         Returns:
             QuerySet: El conjunto de productos filtrado y ordenado.
         """
-        queryset = Product.objects.filter(stock__gt=0).order_by('-created_at')
+        queryset = Product.objects.filter(stock__gt=0, is_active_admin=True).order_by('-created_at')
 
         search = self.request.query_params.get('search')
         category = self.request.query_params.get('category')
@@ -116,7 +116,7 @@ class ProductPublicDetailView(generics.RetrieveAPIView):
         Response: Los datos detallados del producto solicitado (JSON).
     """
     # Detalle de un producto público (solo muestra productos con stock disponible).
-    queryset = Product.objects.filter(stock__gt=0)
+    queryset = Product.objects.filter(stock__gt=0, is_active_admin=True)
     serializer_class = ProductDetailSerializer
     permission_classes = [AllowAny]
     lookup_field = 'id'
@@ -176,6 +176,49 @@ class ProductCreateView(generics.CreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductCreateSerializer
     permission_classes = [IsVendorOrAdmin]
+
+    def create(self, request, *args, **kwargs):
+        from ai_analysis.cloudinary_service import upload_image
+        import json
+
+        data = request.data.copy()
+        
+        images = request.FILES.getlist('images')
+
+        # Handle main_image if not provided via AI
+        if 'main_image' not in data or not data['main_image']:
+            if images:
+                try:
+                    data['main_image'] = upload_image(images[0])
+                except Exception as e:
+                    return Response({'detail': f'Error al subir main_image: {str(e)}'}, status=400)
+            else:
+                return Response({'detail': 'La imagen principal (main_image) es requerida.'}, status=400)
+
+        # Handle additional_images
+        # The frontend either sends them as files in 'additional_images',
+        # or as a JSON string in 'additional_images' (if AI already uploaded them).
+        additional_files = request.FILES.getlist('additional_images')
+        
+        if additional_files:
+            additional_urls = []
+            try:
+                for f in additional_files:
+                    additional_urls.append(upload_image(f))
+            except Exception as e:
+                return Response({'detail': f'Error al subir additional_images: {str(e)}'}, status=400)
+            
+            # Set to JSON string for the serializer
+            data['additional_images'] = json.dumps(additional_urls)
+        elif 'additional_images' not in data:
+            # If no files and no JSON string, default to empty list
+            data['additional_images'] = json.dumps([])
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
         """
@@ -245,12 +288,7 @@ class ProductUpdateView(generics.UpdateAPIView):
     serializer_class = ProductUpdateSerializer
     permission_classes = [IsOwnerOrAdmin]
     lookup_field = 'id'
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.role == user.__class__.Role.ADMIN:
-            return Product.objects.all()
-        return Product.objects.filter(seller=user)
+    queryset = Product.objects.all()
 
     def perform_update(self, serializer):
         """
@@ -287,12 +325,7 @@ class ProductDeleteView(generics.DestroyAPIView):
     # Elimina un producto. Solo el dueño o un admin pueden hacerlo.
     permission_classes = [IsOwnerOrAdmin]
     lookup_field = 'id'
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.role == user.__class__.Role.ADMIN:
-            return Product.objects.all()
-        return Product.objects.filter(seller=user)
+    queryset = Product.objects.all()
 
     def perform_destroy(self, instance):
         """
