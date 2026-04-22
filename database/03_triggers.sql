@@ -18,7 +18,7 @@ drop trigger if exists trg_cartitem_insert;
 drop trigger if exists trg_cartitem_update;
 drop trigger if exists trg_cartitem_delete;
 
-# Triggers para Product
+-- Triggers para Product
 
 DELIMITER $$
 
@@ -170,7 +170,7 @@ END$$
 
 DELIMITER ;
 
-# Triggers para Cart
+-- Triggers para Cart
 
 DELIMITER $$
 
@@ -275,7 +275,7 @@ END$$
 
 DELIMITER ;
 
-# Triggers para CartItem
+-- Triggers para CartItem
 
 DELIMITER $$
 
@@ -384,7 +384,7 @@ END$$
 
 DELIMITER ;
 
-# Triggers para Order
+-- Triggers para Order
 
 DELIMITER $$
 
@@ -518,7 +518,7 @@ END$$
 
 DELIMITER ;
 
-# Triggers para OrderItem
+-- Triggers para OrderItem
 
 DELIMITER $$
 
@@ -633,7 +633,7 @@ END$$
 
 DELIMITER ;
 
-# Triggers para CustomUser
+-- Triggers para CustomUser
 
 DELIMITER $$
 
@@ -675,7 +675,7 @@ END$$
 
 DELIMITER ;
 
-# Triggers para Address
+-- Triggers para Address
 
 DELIMITER $$
 

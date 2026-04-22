@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Product
+from .db_views import ProductPublicListDBView
 import json
 
 
@@ -9,6 +10,25 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
+        fields = [
+            'id', 'title', 'price', 'stock',
+            'category', 'seller_email',
+            'main_image', 'units_sold', 'is_active', 'created_at'
+        ]
+
+
+# Serializer que usa la vista SQL vw_product_public_list
+class ProductPublicListViewSerializer(serializers.ModelSerializer):
+    """
+    Serializer que mapea directamente a la vista SQL vw_product_public_list.
+
+    A diferencia de ProductListSerializer, no necesita resolver el email
+    del vendedor mediante un JOIN en Django, ya que la vista SQL lo incluye
+    como campo directo.
+    """
+
+    class Meta:
+        model = ProductPublicListDBView
         fields = [
             'id', 'title', 'price', 'stock',
             'category', 'seller_email',

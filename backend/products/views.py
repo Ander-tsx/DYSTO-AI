@@ -9,11 +9,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Product
+from .db_views import ProductPublicListDBView
 from core.permissions import IsVendorOrAdmin, IsOwnerOrAdmin, IsAdmin
 from .serializers import (
     ProductCreateSerializer,
     ProductUpdateSerializer,
     ProductListSerializer,
+    ProductPublicListViewSerializer,
     ProductDetailSerializer,
 )
 from rest_framework.exceptions import PermissionDenied
@@ -39,16 +41,17 @@ class ProductPublicListView(generics.ListAPIView):
         Response: Una respuesta paginada con la lista de productos (JSON).
     """
     # Lista pública de productos con filtros: search, category, min_price, max_price, sort.
-    serializer_class = ProductListSerializer
+    # Usa la vista SQL vw_product_public_list en lugar del modelo Product directamente.
+    serializer_class = ProductPublicListViewSerializer
     permission_classes = [AllowAny]
     pagination_class = ProductPublicPagination
 
     def get_queryset(self):
         """
-        Construye el conjunto de datos (queryset) para la lista de productos.
+        Construye el queryset usando la vista SQL vw_product_public_list.
 
-        Aplica dinámicamente los filtros basados en los parámetros de consulta (query params):
-        'search', 'category', 'min_price', 'max_price', y 'sort'.
+        El filtro base (stock > 0) y el JOIN con el vendedor ya están resueltos
+        por la vista SQL. Aquí solo se aplican filtros dinámicos del usuario.
 
         Args:
             None (usa self.request).
@@ -56,7 +59,8 @@ class ProductPublicListView(generics.ListAPIView):
         Returns:
             QuerySet: El conjunto de productos filtrado y ordenado.
         """
-        queryset = Product.objects.filter(stock__gt=0).order_by('-created_at')
+        # La vista SQL ya filtra stock > 0 y hace JOIN con el vendedor
+        queryset = ProductPublicListDBView.objects.all()
 
         search = self.request.query_params.get('search')
         category = self.request.query_params.get('category')
@@ -66,13 +70,9 @@ class ProductPublicListView(generics.ListAPIView):
 
         if search:
             logger.debug(f"[ProductPublicListView] Search query: '{search}'")
-            queryset = queryset.annotate(
-                tags_text=Cast('tags', output_field=CharField())
-            ).filter(
+            queryset = queryset.filter(
                 Q(title__icontains=search)
-                | Q(description__icontains=search)
                 | Q(category__icontains=search)
-                | Q(tags_text__icontains=search)
             )
 
         if category:

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import Order, OrderItem
+from .db_views import OrderListDBView
 from users.models import Address
 
 
@@ -25,6 +26,24 @@ class OrderSerializer(serializers.ModelSerializer):
             'total', 'status', 'created_at', 'items'
         ]
         read_only_fields = fields
+
+
+# Serializer que usa la vista SQL vw_order_list
+class OrderListViewSerializer(serializers.ModelSerializer):
+    """
+    Serializer que mapea directamente a la vista SQL vw_order_list.
+
+    Incluye campos calculados por la vista (user_email, total_items,
+    total_quantity) sin necesidad de hacer JOINs ni sub-queries en Django.
+    """
+
+    class Meta:
+        model = OrderListDBView
+        fields = [
+            'id', 'order_number', 'user_id', 'user_email',
+            'address_snapshot', 'total', 'status', 'created_at',
+            'total_items', 'total_quantity'
+        ]
 
 
 class CheckoutSerializer(serializers.Serializer):
