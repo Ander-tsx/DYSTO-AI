@@ -38,6 +38,8 @@ class Product(models.Model):
     # Bloquear edición si ya se vendió al menos uno
     edit_allowed = models.BooleanField(default=False)
 
+    is_active_admin = models.BooleanField(default=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -63,5 +65,5 @@ class Product(models.Model):
         Returns:
             bool: True si el stock del producto es mayor a 0, False de lo contrario.
         """
-        # Un producto se considera activo si tiene stock disponible
-        return self.stock > 0
+        # Un producto se considera activo si tiene stock disponible y el admin no lo ha desactivado
+        return self.stock > 0 and self.is_active_admin

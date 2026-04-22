@@ -13,7 +13,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'price', 'stock',
             'category', 'seller_email',
-            'main_image', 'units_sold', 'is_active', 'created_at'
+            'main_image', 'units_sold', 'is_active', 'is_active_admin', 'created_at'
         ]
 
 
@@ -46,7 +46,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'price', 'stock',
             'category', 'seller_email',
             'main_image', 'additional_images', 'metadata',
-            'tags', 'units_sold', 'edit_allowed', 'is_active',
+            'tags', 'units_sold', 'edit_allowed', 'is_active', 'is_active_admin',
             'created_at', 'updated_at'
         ]
 
@@ -86,9 +86,26 @@ class ProductCreateSerializer(serializers.ModelSerializer):
             except Exception:
                 raise serializers.ValidationError({"tags": "Formato inválido"})
 
+        metadata = request.data.get('metadata')
+        if metadata:
+            try:
+                if isinstance(metadata, dict):
+                    attrs['metadata'] = metadata
+                elif isinstance(metadata, str):
+                    attrs['metadata'] = json.loads(metadata)
+            except Exception:
+                pass
+
         # Validación de 1 a 5 imágenes en total
         # main_image siempre cuenta como 1 (es required por el modelo)
         additional = attrs.get('additional_images', [])
+        if isinstance(additional, str):
+            try:
+                additional = json.loads(additional)
+                attrs['additional_images'] = additional
+            except Exception:
+                raise serializers.ValidationError({"additional_images": "Formato inválido"})
+
         if not isinstance(additional, list):
             raise serializers.ValidationError({"additional_images": "Debe ser una lista de URLs."})
 
@@ -113,7 +130,7 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'title', 'description', 'price', 'stock',
             'category', 'main_image', 'additional_images',
-            'metadata', 'tags'
+            'metadata', 'tags', 'is_active_admin'
         ]
 
     def validate_price(self, value):
@@ -135,18 +152,43 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
             if 1 + len(current_add) > 5:
                 raise serializers.ValidationError("No puede exceder las 5 imágenes en total.")
 
+        request = self.context.get('request')
+        if request:
+            metadata = request.data.get('metadata')
+            if metadata:
+                try:
+                    if isinstance(metadata, dict):
+                        attrs['metadata'] = metadata
+                    elif isinstance(metadata, str):
+                        attrs['metadata'] = json.loads(metadata)
+                except Exception:
+                    pass
+
         return attrs
 
     def update(self, instance, validated_data):
+        request = self.context.get('request')
+        if request and request.user.role != 'admin':
+            validated_data.pop('is_active_admin', None)
+
         # Si hay unidades vendidas > 0, solo el stock es mutable.
         # Filtramos silenciosamente el resto en lugar de rechazar,
         # para tolerar payloads completos enviados desde el frontend.
         if getattr(instance, 'units_sold', 0) > 0:
             stock_value = validated_data.get('stock')
-            if stock_value is None:
+            is_active_admin_val = validated_data.get('is_active_admin')
+            
+            # Allow admin to change is_active_admin even if units_sold > 0
+            update_data = {}
+            if stock_value is not None:
+                update_data['stock'] = stock_value
+            if is_active_admin_val is not None and request and request.user.role == 'admin':
+                update_data['is_active_admin'] = is_active_admin_val
+
+            if not update_data and stock_value is None:
                 raise serializers.ValidationError(
                     "El producto ya tiene ventas. Solo puedes actualizar el stock."
                 )
-            validated_data = {'stock': stock_value}
+            validated_data = update_data
 
         return super().update(instance, validated_data)
