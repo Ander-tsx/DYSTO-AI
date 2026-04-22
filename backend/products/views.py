@@ -59,9 +59,9 @@ class ProductPublicListView(generics.ListAPIView):
         Returns:
             QuerySet: El conjunto de productos filtrado y ordenado.
         """
-        # La vista SQL ya filtra stock > 0 y hace JOIN con el vendedor.
-        # Conservamos el filtro is_active_admin=True proveniente de la rama develop.
-        queryset = ProductPublicListDBView.objects.filter(is_active_admin=True)
+        # La vista SQL ya filtra stock > 0 AND is_active_admin = TRUE (vw_product_public_list).
+        # No aplicamos filtro adicional aquí para evitar FieldError sobre campos no mapeados.
+        queryset = ProductPublicListDBView.objects.all()
 
         search = self.request.query_params.get('search')
         category = self.request.query_params.get('category')
