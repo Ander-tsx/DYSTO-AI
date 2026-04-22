@@ -6,6 +6,16 @@ from logbook.decorators import audit_log
 
 @audit_log
 class Order(models.Model):
+    """
+    Modelo que representa un pedido finalizado en el sistema.
+
+    Almacena una instantánea de la dirección (address_snapshot) para preservar 
+    el registro en caso de que el usuario cambie su dirección posteriormente.
+    Genera automáticamente un número de orden único.
+
+    Args:
+        models.Model: Clase base de Django.
+    """
 
     class Status(models.TextChoices):
         COMPLETED = 'completed', 'Completada'
@@ -41,6 +51,16 @@ class Order(models.Model):
 
 @audit_log
 class OrderItem(models.Model):
+    """
+    Modelo que representa un producto específico dentro de un pedido.
+
+    Almacena una instantánea (product_snapshot) del título y precio original,
+    asegurando que los históricos de ventas no se modifiquen si el producto
+    original es editado o eliminado en el futuro.
+
+    Args:
+        models.Model: Clase base de Django.
+    """
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(
         Product,

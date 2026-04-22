@@ -6,6 +6,15 @@ from logbook.decorators import audit_log
 
 @audit_log
 class Product(models.Model):
+    """
+    Modelo que representa un producto en el sistema de marketplace.
+
+    Almacena información sobre el vendedor, el título, descripción, precio, 
+    stock y metadatos adicionales del producto.
+
+    Args:
+        models.Model: Clase base de Django para modelos de base de datos.
+    """
     # Usamos seller como ForeignKey a User para mantener la relación entre productos y vendedores
     seller = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -29,6 +38,8 @@ class Product(models.Model):
     # Bloquear edición si ya se vendió al menos uno
     edit_allowed = models.BooleanField(default=False)
 
+    is_active_admin = models.BooleanField(default=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -45,5 +56,14 @@ class Product(models.Model):
 
     @property
     def is_active(self):
-        # Un producto se considera activo si tiene stock disponible
-        return self.stock > 0
+        """
+        Determina si el producto está activo basado en su nivel de stock.
+
+        Args:
+            None
+
+        Returns:
+            bool: True si el stock del producto es mayor a 0, False de lo contrario.
+        """
+        # Un producto se considera activo si tiene stock disponible y el admin no lo ha desactivado
+        return self.stock > 0 and self.is_active_admin

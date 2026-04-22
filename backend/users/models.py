@@ -6,6 +6,15 @@ from logbook.decorators import audit_log
 
 @audit_log
 class CustomUser(AbstractUser):
+    """
+    Modelo de usuario personalizado que extiende AbstractUser de Django.
+
+    Utiliza el email como identificador único en lugar del nombre de usuario.
+    Incluye roles específicos (Cliente, Vendedor, Administrador).
+
+    Args:
+        AbstractUser: Clase base de Django para usuarios.
+    """
 
     class Role(models.TextChoices):
         CLIENT = 'client', 'Cliente'
@@ -38,6 +47,14 @@ class CustomUser(AbstractUser):
 
 @audit_log
 class Address(models.Model):
+    """
+    Modelo que representa una dirección de envío o facturación de un usuario.
+
+    Permite definir una dirección como predeterminada (is_default) de forma exclusiva.
+
+    Args:
+        models.Model: Clase base de Django.
+    """
     # Dirección de envío asociada a un usuario.
 
     user = models.ForeignKey(

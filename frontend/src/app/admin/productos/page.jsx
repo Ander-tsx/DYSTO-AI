@@ -34,33 +34,24 @@ export default function AdminProductsPage() {
     const toggleProductStatus = async (id, currentStatus) => {
         try {
             await api.patch(`/products/${id}/edit/`, {
-                is_active: !currentStatus
+                is_active_admin: !currentStatus
             });
             // Update UI locally
-            setProducts(prev => prev.map(p => p.id === id ? { ...p, is_active: !currentStatus } : p));
+            setProducts(prev => prev.map(p => p.id === id ? { ...p, is_active_admin: !currentStatus } : p));
         } catch (err) {
             const msg = err.response?.data?.detail || 'Error al cambiar el estado del producto.';
             setError(msg);
         }
     };
 
-    const deleteProduct = async (id) => {
-        if (!confirm('¿Estás seguro de eliminar este producto permanentemente?')) return;
-        try {
-            await api.delete(`/products/${id}/delete/`);
-            setProducts(prev => prev.filter(p => p.id !== id));
-        } catch (err) {
-            const msg = err.response?.data?.detail || 'Error al eliminar el producto.';
-            setError(msg);
-        }
-    };
+
 
     const filteredProducts = useMemo(() => {
         return products.filter((product) => {
             const matchState =
                 filterState === "Todos" ||
-                (filterState === "Activo" && product.is_active) ||
-                (filterState === "Inactivo" && !product.is_active);
+                (filterState === "Activo" && product.is_active_admin) ||
+                (filterState === "Inactivo" && !product.is_active_admin);
 
             const matchSearch =
                 !search ||
@@ -129,8 +120,8 @@ export default function AdminProductsPage() {
                 </td>
 
                 <td className="whitespace-nowrap px-5 py-4">
-                    <Badge variant={product.is_active ? "success" : "error"}>
-                        {product.is_active ? "Activo" : "Inactivo"}
+                    <Badge variant={product.is_active_admin ? "success" : "error"}>
+                        {product.is_active_admin ? "Activo" : "Desactivado (Admin)"}
                     </Badge>
                 </td>
 
@@ -139,20 +130,12 @@ export default function AdminProductsPage() {
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="p-1.5 text-zinc-400 hover:text-cyan-400"
-                            onClick={() => toggleProductStatus(product.id, product.is_active)}
-                            title={product.is_active ? "Desactivar" : "Activar"}
+                            className={`p-1.5 ${product.is_active_admin ? "text-rose-400 hover:text-rose-300 hover:bg-rose-500/10" : "text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"}`}
+                            onClick={() => toggleProductStatus(product.id, product.is_active_admin)}
+                            title={product.is_active_admin ? "Desactivar Producto" : "Activar Producto"}
                         >
-                            {product.is_active ? <PowerOff size={16} /> : <Power size={16} />}
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="p-1.5 text-zinc-400 hover:text-rose-400"
-                            onClick={() => deleteProduct(product.id)}
-                            title="Eliminar"
-                        >
-                            <Trash2 size={16} />
+                            {product.is_active_admin ? <PowerOff size={16} /> : <Power size={16} />}
+                            <span className="ml-2 text-xs">{product.is_active_admin ? "Desactivar" : "Activar"}</span>
                         </Button>
                     </div>
                 </td>

@@ -16,9 +16,35 @@ from .serializers import OrderSerializer, CheckoutSerializer
 
 
 class CheckoutView(APIView):
+    """
+    Vista encargada de procesar la compra de los productos en el carrito.
+
+    Realiza validaciones de stock, bloqueos en la base de datos para evitar condiciones
+    de carrera y vacía el carrito una vez que la orden se crea exitosamente.
+
+    Args:
+        request (Request): La solicitud HTTP POST que contiene el ID de la dirección de envío.
+        *args: Argumentos posicionales adicionales.
+        **kwargs: Argumentos de palabras clave adicionales.
+
+    Returns:
+        Response: Detalles de la orden creada si fue exitosa, o mensajes de error detallados si falla.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
+        """
+        Realiza el proceso de compra.
+
+        Valida el stock, reserva los productos, crea la orden de compra,
+        y vacía el carrito. Emplea un bloque transaccional.
+
+        Args:
+            request (Request): Petición POST.
+
+        Returns:
+            Response: Los detalles del pedido o un error 400/500 si falla.
+        """
         logger.debug(f"[CheckoutView] Checkout initiated: user_id={request.user.id}")
 
         serializer = CheckoutSerializer(data=request.data, context={'request': request})
@@ -152,19 +178,53 @@ class CheckoutView(APIView):
 
 
 class OrderListView(generics.ListAPIView):
+    """
+    Vista para listar los pedidos (órdenes) realizados por el usuario autenticado.
+
+    Args:
+        request (Request): La solicitud HTTP entrante.
+        *args: Argumentos posicionales.
+        **kwargs: Argumentos de palabras clave.
+
+    Returns:
+        Response: Una lista paginada de las órdenes del usuario.
+    """
     # Lista los pedidos del usuario autenticado.
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        """
+        Filtra las órdenes para que el usuario solo pueda ver las suyas.
+
+        Returns:
+            QuerySet: Órdenes pertenecientes al usuario autenticado.
+        """
         return Order.objects.filter(user=self.request.user)
 
 
 class OrderDetailView(generics.RetrieveAPIView):
+    """
+    Vista para recuperar los detalles completos de una orden específica.
+
+    Args:
+        request (Request): La solicitud HTTP entrante.
+        *args: Argumentos posicionales.
+        **kwargs: Argumentos de palabras clave, debe incluir 'order_number'.
+
+    Returns:
+        Response: Los datos detallados de la orden solicitada.
+    """
     # Detalle de un pedido por número de orden.
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'order_number'
 
     def get_queryset(self):
+        """
+        Filtra las órdenes asegurando que el usuario solo pueda recuperar los detalles de sus propios pedidos.
+
+        Returns:
+            QuerySet: Órdenes pertenecientes al usuario autenticado.
+        """
         return Order.objects.filter(user=self.request.user)

@@ -426,31 +426,6 @@ function ProductContent({
             </div>
           )}
 
-          {/* Metadata */}
-          {product.metadata && Object.keys(product.metadata).length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-xs font-bold uppercase tracking-widest mb-2 font-mono" style={{ color: '#444' }}>
-                Especificaciones
-              </h2>
-              <div className="rounded-xl overflow-hidden border" style={{ borderColor: '#1f1f1f' }}>
-                {Object.entries(product.metadata).map(([key, value], i) => (
-                  <div
-                    key={key}
-                    className="flex justify-between px-4 py-2.5 text-sm"
-                    style={{
-                      background: i % 2 === 0 ? '#0d0d0d' : '#111111',
-                      borderBottom: i < Object.keys(product.metadata).length - 1 ? '1px solid #1a1a1a' : 'none',
-                    }}
-                  >
-                    <span style={{ color: '#555' }} className="capitalize">{key.replaceAll('_', ' ')}</span>
-                    <span style={{ color: '#bbb' }} className="text-right max-w-[60%]">
-                      {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Units sold */}
           {product.units_sold > 0 && (

@@ -40,12 +40,12 @@ export default function RootLayout({ children }) {
               theme="dark"
               position="bottom-right"
               options={{
-                fill: "#09090b",
+                fill: "#212121ff",
                 roundness: 12,
                 duration: 4000,
                 styles: {
-                  title: "text-zinc-100",
-                  description: "text-zinc-300",
+                  title: "font-medium",
+                  description: "text-white!",
                   badge: "border border-zinc-700 bg-zinc-800 text-zinc-200",
                 },
               }}
