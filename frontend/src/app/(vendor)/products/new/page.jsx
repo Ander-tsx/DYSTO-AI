@@ -101,8 +101,8 @@ export default function NewProductPage() {
   const handleFiles = (files) => {
     const valid = [];
     for (let file of files) {
-      if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-        notify.error('Formato inválido', 'Solo se aceptan PNG, JPG o WebP.');
+      if (!['image/png', 'image/jpeg'].includes(file.type)) {
+        notify.error('Formato inválido', 'Solo se aceptan PNG, JPG.');
         continue;
       }
       if (file.size > 10 * 1024 * 1024) {

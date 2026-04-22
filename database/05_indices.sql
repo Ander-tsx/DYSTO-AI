@@ -10,7 +10,7 @@
 --       sobre estas columnas.
 -- =========================================================
 
-USE dysto_ai;
+USE dystoai;
 
 -- ---------------------------------------------------------
 -- ÍNDICE 1: email en users_customuser

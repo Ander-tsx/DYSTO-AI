@@ -1,6 +1,6 @@
 -- DB-01 | Poblacion de datos inicial para pruebas de desarrollo
 
-USE dysto_ai;
+USE dystoai;
 
 START TRANSACTION;
 

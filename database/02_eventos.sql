@@ -3,7 +3,7 @@
 -- Si tienes permisos de administrador, ejecuta:
 -- SET GLOBAL event_scheduler = ON;
 
-USE dysto_ai;
+USE dystoai;
 
 DROP EVENT IF EXISTS ev_clean_empty_abandoned_carts;
 DROP EVENT IF EXISTS ev_purge_old_audit_logs;
