@@ -141,7 +141,7 @@ export default function MarketplacePage() {
             <span className="font-mono" style={{ color: '#e0ff4f' }}>DystoAI</span>
           </h1>
           <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
-            Explora los mejores modelos, prompts y herramientas de inteligencia artificial.
+            Explora en DystoAI Marketplace.
           </p>
         </div>
 
@@ -153,7 +153,7 @@ export default function MarketplacePage() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar productos, modelos, prompts…"
+              placeholder="Buscar productos"
               className="w-full h-14 pl-12 pr-4 rounded-2xl text-base bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#e0ff4f]/50 focus:ring-2 focus:ring-[#e0ff4f]/20 transition-all"
             />
             {search && (

@@ -13,7 +13,7 @@ export default function Footer() {
           </div>
 
           <p className="text-xs text-zinc-600 text-center">
-            Marketplace de Inteligencia Artificial — modelos, prompts y herramientas premium
+            Marketplace DystoAI
           </p>
 
           <span className="text-sm text-zinc-600">

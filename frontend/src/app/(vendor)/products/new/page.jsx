@@ -435,7 +435,7 @@ export default function NewProductPage() {
                   name="tags"
                   value={form.tags}
                   onChange={handleChange}
-                  placeholder="gpt4, prompts, chatbot, nlp…"
+                  placeholder="EJ. Jabon, Consola, Laptop, etc..."
                   className={inputClass}
                 />
                 <p className="text-xs text-zinc-700 mt-1">Separa las etiquetas con comas para mejorar la búsqueda.</p>
