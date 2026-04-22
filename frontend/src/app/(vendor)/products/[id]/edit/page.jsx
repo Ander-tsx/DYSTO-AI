@@ -53,12 +53,12 @@ export default function EditProductPage() {
       const payload = product.units_sold > 0
         ? { stock: Number(product.stock) }
         : {
-            title: product.title,
-            description: product.description,
-            category: product.category,
-            price: product.price,
-            stock: Number(product.stock),
-          };
+          title: product.title,
+          description: product.description,
+          category: product.category,
+          price: product.price,
+          stock: Number(product.stock),
+        };
 
       await api.patch(`/products/${id}/edit/`, payload);
       notify.success("Producto actualizado", "Los cambios han sido guardados correctamente.");
@@ -80,6 +80,7 @@ export default function EditProductPage() {
   }
 
   const hasSales = product.units_sold > 0;
+  const isSingleSale = product.units_sold === 1;
 
   return (
     <main className="max-w-3xl mx-auto py-12 px-4 min-h-screen">
@@ -100,68 +101,68 @@ export default function EditProductPage() {
             style={{ background: 'rgba(234,179,8,0.06)', borderColor: 'rgba(234,179,8,0.2)' }}>
             <span className="text-yellow-400 text-xl mt-0.5 shrink-0">⚠️</span>
             <p className="text-sm text-yellow-300/80 leading-relaxed">
-              <strong className="font-semibold text-yellow-400 mr-1">Edición limitada:</strong>
-              Este producto ya tiene <strong>{product.units_sold}</strong> unidad{product.units_sold !== 1 ? 'es' : ''} vendida{product.units_sold !== 1 ? 's' : ''}.
+              <strong className="font-semibold text-yellow-400 mr-1">Edición limitada:</strong>{' '}
+              Este producto ya tiene <strong>{product.units_sold}</strong> unidad{isSingleSale ? '' : 'es'} vendida{isSingleSale ? '' : 's'}.
               Para proteger el historial de compradores, <strong>solo puedes ajustar el stock disponible</strong>.
             </p>
           </div>
         )}
 
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Título del Producto</label>
+          <label htmlFor="product-title" className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Título del Producto</label>
           <input
+            id="product-title"
             type="text"
             name="title"
             value={product.title || ''}
             onChange={handleChange}
             disabled={hasSales}
-            className={`w-full p-3.5 rounded-xl text-white outline-none transition-colors text-sm ${
-              hasSales
-                ? 'bg-zinc-800/40 border border-zinc-800 opacity-40 cursor-not-allowed'
-                : 'bg-zinc-800 border border-zinc-700 focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10'
-            }`}
+            className={`w-full p-3.5 rounded-xl text-white outline-none transition-colors text-sm ${hasSales
+              ? 'bg-zinc-800/40 border border-zinc-800 opacity-40 cursor-not-allowed'
+              : 'bg-zinc-800 border border-zinc-700 focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10'
+              }`}
             required
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Descripción</label>
+          <label htmlFor="product-description" className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Descripción</label>
           <textarea
+            id="product-description"
             name="description"
             value={product.description || ''}
             onChange={handleChange}
             disabled={hasSales}
             rows="5"
-            className={`w-full p-3.5 rounded-xl text-white outline-none transition-colors resize-none text-sm ${
-              hasSales
-                ? 'bg-zinc-800/40 border border-zinc-800 opacity-40 cursor-not-allowed'
-                : 'bg-zinc-800 border border-zinc-700 focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10'
-            }`}
+            className={`w-full p-3.5 rounded-xl text-white outline-none transition-colors resize-none text-sm ${hasSales
+              ? 'bg-zinc-800/40 border border-zinc-800 opacity-40 cursor-not-allowed'
+              : 'bg-zinc-800 border border-zinc-700 focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10'
+              }`}
             required
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Precio ($)</label>
+            <label htmlFor="product-price" className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Precio ($)</label>
             <input
+              id="product-price"
               type="number"
               step="0.01"
               name="price"
               value={product.price || ''}
               onChange={handleChange}
               disabled={hasSales}
-              className={`w-full p-3.5 rounded-xl text-white outline-none transition-colors font-mono tracking-wide text-sm ${
-                hasSales
-                  ? 'bg-zinc-800/40 border border-zinc-800 opacity-40 cursor-not-allowed'
-                  : 'bg-zinc-800 border border-zinc-700 focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10'
-              }`}
+              className={`w-full p-3.5 rounded-xl text-white outline-none transition-colors font-mono tracking-wide text-sm ${hasSales
+                ? 'bg-zinc-800/40 border border-zinc-800 opacity-40 cursor-not-allowed'
+                : 'bg-zinc-800 border border-zinc-700 focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10'
+                }`}
               required
             />
           </div>
 
           <div className="flex flex-col gap-2 relative group">
-            <label className="text-xs font-semibold uppercase tracking-wider flex justify-between items-center"
+            <label htmlFor="product-stock" className="text-xs font-semibold uppercase tracking-wider flex justify-between items-center"
               style={{ color: hasSales ? '#e0ff4f' : '#71717a' }}>
               <span>Stock Disponible</span>
               {hasSales && (
@@ -171,16 +172,16 @@ export default function EditProductPage() {
               )}
             </label>
             <input
+              id="product-stock"
               type="number"
               name="stock"
               min="0"
-              value={product.stock !== undefined ? product.stock : 0}
+              value={product.stock ?? 0}
               onChange={handleChange}
-              className={`w-full p-3.5 rounded-xl text-white outline-none transition-all font-mono tracking-wide text-sm ${
-                hasSales
-                  ? 'bg-zinc-800 border border-[#e0ff4f]/40 focus:border-[#e0ff4f] shadow-[0_0_20px_rgba(224,255,79,0.08)] ring-1 ring-[#e0ff4f]/20'
-                  : 'bg-zinc-800 border border-zinc-700 focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10'
-              }`}
+              className={`w-full p-3.5 rounded-xl text-white outline-none transition-all font-mono tracking-wide text-sm ${hasSales
+                ? 'bg-zinc-800 border border-[#e0ff4f]/40 focus:border-[#e0ff4f] shadow-[0_0_20px_rgba(224,255,79,0.08)] ring-1 ring-[#e0ff4f]/20'
+                : 'bg-zinc-800 border border-zinc-700 focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10'
+                }`}
               required
             />
             {hasSales && (

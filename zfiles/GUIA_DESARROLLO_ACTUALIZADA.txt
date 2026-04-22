@@ -1,0 +1,1281 @@
+================================================================================
+     GUÍA DE DESARROLLO SEGURO
+     Sistema Dysto-AI — Marketplace con análisis de imágenes mediante IA
+================================================================================
+
+     Equipo:    8A — Netrunners
+     Versión:   1.0
+     Fecha:     16/04/2026
+     Estado:    En desarrollo
+
+================================================================================
+
+
+ÍNDICE
+
+  1. Introducción
+  2. Consideraciones para Seguridad en el Desarrollo
+     2.1  Implementación de librerías y frameworks de seguridad
+     2.2  Consultas seguras de base de datos
+     2.3  Validación de datos
+     2.4  Implementación de mecanismos de autenticación
+     2.5  Manejo de sesiones
+     2.6  Calidad de código
+     2.7  Creación de base de datos y datos iniciales
+     2.8  Manejo de errores y excepciones
+     2.9  Trazabilidad y auditoría
+  3. Tecnologías de Preferencia
+     3.1  Lenguajes de programación
+     3.2  Almacenamiento de datos relacionales
+     3.3  Almacenamiento externo de archivos multimedia
+     3.4  Inteligencia artificial
+  4. Arquitectura del Sistema
+     4.1  Diseño general
+     4.2  Almacenamiento (uso de cluster y tipos de consultas)
+     4.3  Tareas externas (fuera de línea o programadas)
+     4.4  Estándares de codificación y nomenclatura
+  5. Uso de Repositorios de Integración
+     5.1  Capacidad de almacenamiento
+     5.2  Uso de ramas
+     5.3  Reglas de commit
+  6. Desarrollo y Consumo de APIs
+     6.1  Integración de servicios (REST)
+     6.2  Autenticación de servicios
+     6.3  Interoperabilidad (especificación de rutas)
+     6.4  Uso del idioma en el código
+  7. Aseguramiento de la Calidad de Software
+     7.1  Plan de pruebas
+     7.2  Diseño de pruebas
+     7.3  Reporte de resultados
+
+
+================================================================================
+1. INTRODUCCIÓN
+================================================================================
+
+El presente documento establece los lineamientos técnicos, organizacionales y de
+seguridad que deberán seguirse durante el desarrollo del sistema Dysto-AI, con el
+objetivo de garantizar la calidad del software, la protección de los datos de los
+usuarios y la operación segura del sistema.
+
+Dysto-AI es un sistema tipo marketplace en el cual los productos obtendrán sus
+datos automáticamente mediante análisis de imágenes utilizando inteligencia
+artificial. El sistema permitirá publicar artículos, gestionar inventario y
+realizar compras simuladas. Los usuarios que se registren en la plataforma
+adquirirán de forma predeterminada capacidades tanto de comprador como de vendedor,
+pudiendo publicar sus propios productos y adquirir los de otros usuarios de forma
+simultánea.
+
+La plataforma contemplará dos perfiles de usuario diferenciados:
+
+  - Vendedor (vendor): perfil predeterminado asignado a cualquier usuario que
+    se registre de forma pública. Tendrá la capacidad de publicar productos,
+    gestionar su inventario, agregar artículos al carrito y completar compras.
+    La distinción entre comprador y vendedor queda así eliminada: todo usuario
+    registrado podrá hacer ambas cosas.
+
+  - Administrador (admin): perfil de gestión total del sistema. Podrá crear
+    cuentas, administrar usuarios y supervisar el catálogo completo de productos
+    sin restricciones de inventario.
+
+Esta guía define la arquitectura tecnológica, prácticas de desarrollo seguro,
+políticas de control, procedimientos de prueba y lineamientos de operación del
+sistema. Los criterios aquí establecidos son de carácter obligatorio para todos
+los integrantes del equipo de desarrollo durante el ciclo de vida del proyecto.
+
+
+================================================================================
+2. CONSIDERACIONES PARA SEGURIDAD EN EL DESARROLLO
+================================================================================
+
+La seguridad debe integrarse como un componente estructural del ciclo de vida del
+software y no como un elemento posterior o correctivo. Todo sistema desarrollado
+bajo estos lineamientos deberá diseñarse, implementarse y mantenerse bajo
+principios de prevención, control, trazabilidad y minimización de riesgos.
+
+
+--------------------------------------------------------------------------------
+2.1 Implementación de librerías y frameworks de seguridad
+--------------------------------------------------------------------------------
+
+El sistema deberá utilizar las capacidades de seguridad integradas en las
+tecnologías seleccionadas para el desarrollo de la aplicación, tales como
+mecanismos de autenticación, validación de datos y control de acceso. Las
+funcionalidades de seguridad provistas por los componentes tecnológicos deberán
+emplearse conforme a sus configuraciones recomendadas, evitando implementaciones
+manuales cuando exista una solución integrada disponible.
+
+El sistema podrá apoyarse en componentes o servicios externos que gestionen
+funciones relevantes para la operación o seguridad. Dichos componentes deberán
+utilizarse conforme a sus configuraciones estándar y buenas prácticas de
+integración. Entre las categorías de librerías cuya incorporación se recomienda
+para un proyecto de esta naturaleza se encuentran:
+
+  a) Gestión de tokens de autenticación (JWT):
+     Se deberá emplear una librería dedicada para la emisión, validación y
+     revocación de JSON Web Tokens. La configuración deberá contemplar tiempos
+     de expiración controlados para tokens de acceso y de refresco, rotación
+     automática del token de refresco tras cada uso, y colocación en lista negra
+     (blacklisting) de tokens invalidados para prevenir su reutilización una vez
+     cerrada la sesión. En proyectos basados en Django, se recomienda el uso de
+     djangorestframework-simplejwt o equivalente.
+
+  b) Control de políticas de origen cruzado (CORS):
+     Deberá configurarse un mecanismo que restrinja los orígenes habilitados para
+     interactuar con la API. Solo los dominios explícitamente autorizados en la
+     configuración del proyecto podrán realizar solicitudes. En proyectos Django
+     se recomienda django-cors-headers o equivalente.
+
+  c) Cabeceras HTTP de seguridad:
+     El framework deberá configurarse para emitir cabeceras de protección como
+     X-Frame-Options (protección contra clickjacking), X-Content-Type-Options
+     (prevención de MIME sniffing) y el filtro XSS del navegador. Django las
+     provee de forma nativa mediante su módulo de seguridad.
+
+  d) Validación y hashing de contraseñas:
+     Deberán aplicarse validadores de contraseña que verifiquen criterios mínimos
+     de complejidad: longitud mínima, similitud con atributos del usuario,
+     contraseñas comunes y contraseñas completamente numéricas. Las contraseñas
+     nunca deberán almacenarse en texto plano; se aplicará hashing mediante
+     mecanismos criptográficos reconocidos (PBKDF2, bcrypt, Argon2 o equivalente).
+
+  e) Procesamiento y validación de imágenes:
+     En caso de que el sistema acepte carga de archivos de imagen, deberá
+     emplearse una librería de procesamiento de imágenes (como Pillow) para
+     verificar el contenido binario real de cada archivo, independientemente
+     de su extensión declarada. Esto previene la carga de archivos maliciosos
+     disfrazados de imágenes.
+
+  f) Integración con servicios de inteligencia artificial:
+     Si el sistema se integra con APIs externas de IA para análisis de contenido,
+     deberán emplearse los SDK oficiales del proveedor seleccionado. La clave de
+     API deberá gestionarse como variable de entorno y nunca incluirse en el
+     código fuente. Se recomienda google-generativeai para integraciones con los
+     modelos Gemini de Google.
+
+  g) Almacenamiento externo de archivos:
+     En caso de utilizarse un servicio externo para el alojamiento de archivos
+     multimedia, deberá emplearse el SDK oficial del proveedor. Las credenciales
+     de acceso se gestionarán como variables de entorno. Se recomienda el SDK de
+     Cloudinary para proyectos que requieran alojamiento y entrega de imágenes.
+
+  h) Gestión de variables de entorno:
+     Todas las credenciales, claves secretas y parámetros de configuración
+     sensibles deberán leerse desde variables de entorno mediante librerías
+     como python-dotenv o python-decouple, y nunca aparecer directamente en
+     el código fuente ni en el repositorio.
+
+La verificación del cumplimiento de esta sección podrá realizarse revisando los
+archivos de configuración del proyecto (por ejemplo, settings.py en Django) bajo
+las claves de aplicaciones instaladas, middleware, validadores de contraseña y
+configuración de seguridad HTTP.
+
+
+--------------------------------------------------------------------------------
+2.2 Consultas seguras de base de datos
+--------------------------------------------------------------------------------
+
+El acceso a la información persistente deberá realizarse mediante mecanismos que
+separen la lógica de negocio del acceso directo a datos, evitando manipulación
+manual de instrucciones de consulta.
+
+Se deberán aplicar los siguientes principios:
+
+  - Uso de mecanismos de abstracción o acceso controlado a datos (ORM):
+    Toda interacción con la base de datos deberá realizarse a través del ORM
+    del framework utilizado, que genera automáticamente consultas parametrizadas
+    y previene inyecciones SQL. Queda prohibida la construcción dinámica de
+    consultas mediante concatenación de cadenas con datos no sanitizados.
+
+  - Prohibición de construcción dinámica de consultas con datos no sanitizados:
+    Si en algún caso excepcional fuera necesario escribir SQL directamente, se
+    deberán utilizar obligatoriamente consultas parametrizadas (prepared statements)
+    con los mecanismos provistos por el driver de la base de datos.
+
+  - Validación previa de toda entrada que impacte almacenamiento:
+    Ningún dato proveniente de una solicitud externa deberá persistirse sin haber
+    pasado previamente por la capa de validación del sistema.
+
+  - Acceso controlado para prevención de IDOR:
+    Las consultas deberán siempre filtrar por el usuario autenticado para garantizar
+    que cada usuario acceda exclusivamente a sus propios recursos. Esto previene
+    vulnerabilidades de tipo IDOR (Insecure Direct Object Reference).
+
+    Ejemplo correcto (filtrado por usuario propietario):
+      queryset = Modelo.objects.filter(propietario=usuario_autenticado)
+
+    Ejemplo incorrecto (acceso directo sin validar pertenencia):
+      objeto = Modelo.objects.get(pk=identificador_recibido)
+
+  - Bloqueo optimista en operaciones de alta concurrencia:
+    En procesos que puedan generar condiciones de carrera, como la actualización
+    de inventario ante compras simultáneas, deberá utilizarse bloqueo a nivel de
+    fila dentro de transacciones atómicas. En Django esto se logra con
+    select_for_update() dentro de un bloque transaction.atomic().
+
+Toda interacción con la base de datos deberá ser auditable mediante el sistema
+de registro de auditoría descrito en la sección 2.9.
+
+
+--------------------------------------------------------------------------------
+2.3 Validación de datos
+--------------------------------------------------------------------------------
+
+Todo dato recibido por el sistema deberá ser considerado no confiable hasta que
+sea validado explícitamente. La validación deberá implementarse en múltiples
+niveles:
+
+  a) Capa de servicios del backend (serializers o equivalente):
+     Constituirá la capa de validación principal y obligatoria. Todos los datos
+     recibidos deberán pasar por un mecanismo de validación antes de ser
+     procesados o persistidos. Esta capa deberá verificar:
+
+       - Tipos de datos correctos (entero, decimal, cadena, URL, etc.)
+       - Longitudes mínimas y máximas
+       - Valores dentro de rangos permitidos
+       - Unicidad de campos que lo requieran (como el correo electrónico)
+       - Reglas de negocio específicas del dominio
+
+     Ejemplo de validación de regla de negocio en un serializer de DRF:
+
+       def validate_precio(self, value):
+           if value <= 0:
+               raise serializers.ValidationError(
+                   "El precio debe ser mayor a 0."
+               )
+           return value
+
+  b) Capa de base de datos:
+     Las restricciones de integridad deberán reforzarse también a nivel del
+     modelo de datos mediante constraints de unicidad, campos obligatorios y
+     tipos de datos definidos en el esquema. Esta capa actuará como última
+     línea de defensa ante inserciones inconsistentes.
+
+     Ejemplo de constraint de unicidad en un modelo Django:
+       constraints = [
+           models.UniqueConstraint(
+               fields=['usuario'],
+               condition=models.Q(campo_booleano=True),
+               name='nombre_descriptivo_del_constraint',
+           )
+       ]
+
+  c) Capa de presentación (frontend):
+     Deberá aplicarse validación de campos en los formularios del cliente para
+     mejorar la experiencia de usuario y reducir solicitudes inválidas hacia la
+     API. Esta capa es informativa y de UX; no constituye un control de seguridad
+     confiable, dado que puede ser eludida. La validación definitiva recaerá
+     siempre en el backend.
+
+  d) Validación de archivos multimedia:
+     Todo archivo de imagen recibido por la API deberá ser validado en cuanto a:
+       - Tamaño máximo permitido (se recomienda un límite de 10 MB)
+       - Formato real del contenido binario, verificado mediante análisis de la
+         cabecera del archivo (no solo de la extensión declarada)
+       - Contenido apropiado para el contexto del sistema, cuando aplique
+
+     Ningún archivo deberá almacenarse en servicios externos sin haber superado
+     previamente todas las validaciones correspondientes.
+
+Cualquier dato que no cumpla los criterios definidos deberá rechazarse con un
+mensaje de error descriptivo antes de su procesamiento o almacenamiento.
+
+
+--------------------------------------------------------------------------------
+2.4 Implementación de mecanismos de autenticación
+--------------------------------------------------------------------------------
+
+Todo sistema deberá implementar un mecanismo formal de identificación de usuarios
+o entidades que interactúan con la aplicación. Para el presente proyecto se
+adoptará autenticación basada en JSON Web Tokens (JWT), que deberá garantizar:
+
+  - Verificación de identidad mediante credenciales. El correo electrónico
+    deberá utilizarse como identificador único del usuario en el sistema, en
+    sustitución del campo de nombre de usuario tradicional.
+
+  - Protección de credenciales: las contraseñas deberán almacenarse
+    exclusivamente como hash criptográfico. Ninguna vista, log ni respuesta de
+    la API deberá exponer contraseñas en texto plano.
+
+  - Control de acceso basado en roles: el sistema contemplará dos roles
+    funcionales (vendor, admin). Los permisos de acceso a cada endpoint deberán
+    determinarse mediante clases de permiso personalizadas que verifiquen el rol
+    del usuario autenticado en cada solicitud desde el backend.
+
+  - Capacidad de revocación de acceso: al cerrar sesión, el token de refresco
+    activo deberá invalidarse mediante un mecanismo de lista negra (blacklist),
+    impidiendo que tokens comprometidos puedan emplearse para obtener nuevos
+    tokens de acceso.
+
+  - Ciclo de vida de credenciales:
+      - Token de acceso: deberá tener una vigencia corta (se recomienda un
+        máximo de 15 a 30 minutos). Se transmitirá en la cabecera de cada
+        petición autenticada.
+      - Token de refresco: deberá tener una vigencia extendida (se recomienda
+        entre 7 y 30 días). Se utilizará exclusivamente para obtener nuevos
+        tokens de acceso sin requerir que el usuario reingrese sus credenciales.
+      - Rotación automática: cada uso del token de refresco deberá generar un
+        nuevo token de refresco e invalidar el anterior, reduciendo la ventana
+        de exposición ante un eventual compromiso.
+
+Al momento del registro público, deberá asignarse automáticamente el rol de
+vendor a los nuevos usuarios, sin permitir que el rol sea modificado desde el
+cuerpo de la solicitud. El administrador será el único con capacidad de crear
+nuevas cuentas desde el panel administrativo.
+
+
+--------------------------------------------------------------------------------
+2.5 Manejo de sesiones
+--------------------------------------------------------------------------------
+
+Toda sesión autenticada deberá gestionarse mediante mecanismos controlados que
+permitan mantener, validar y finalizar la interacción del usuario de forma segura.
+El sistema deberá contemplar:
+
+  a) Almacenamiento seguro del token de acceso:
+     El token de acceso JWT deberá almacenarse exclusivamente en la memoria de
+     la aplicación cliente (por ejemplo, en una variable de estado de React). No
+     deberá persistirse en localStorage, sessionStorage ni cookies accesibles
+     desde JavaScript, ya que esto aumentaría la superficie de ataque ante
+     inyección de scripts (XSS).
+
+  b) Persistencia controlada del token de refresco:
+     El token de refresco podrá persistirse en el almacenamiento local del
+     navegador para mantener la sesión activa entre recargas de página. Al ser
+     un token cuya invalidación se controla en el servidor, su eventual compromiso
+     podrá mitigarse revocándolo desde el backend.
+
+  c) Protección de rutas en el cliente:
+     Deberá implementarse un mecanismo en el cliente que impida el acceso a
+     rutas protegidas a usuarios sin sesión activa o sin el rol requerido. En
+     proyectos con Next.js esto podrá lograrse mediante middleware de servidor
+     de borde que verifique una cookie de rol. Esta verificación es complementaria
+     a la UX y no constituye autorización confiable; la autorización real siempre
+     recaerá en el backend.
+
+  d) Renovación automática de sesión:
+     Deberá implementarse un mecanismo de reintento automático que, ante una
+     respuesta HTTP 401, solicite un nuevo token de acceso usando el token de
+     refresco antes de reintentar la solicitud original. Si el refresco falla,
+     la sesión deberá cerrarse inmediatamente y el usuario redirigirse al inicio
+     de sesión.
+
+  e) Expiración e invalidación explícita:
+     El cierre de sesión activo deberá invocar el endpoint de logout del backend,
+     que colocará el token de refresco en la lista negra. Adicionalmente, el
+     cliente deberá eliminar toda referencia local a los tokens y al estado de
+     sesión.
+
+
+--------------------------------------------------------------------------------
+2.6 Calidad de código
+--------------------------------------------------------------------------------
+
+La calidad del código es un factor determinante en la seguridad y mantenibilidad
+del sistema. El software deberá desarrollarse bajo principios de claridad,
+mantenibilidad y trazabilidad.
+
+Todo proyecto deberá establecer:
+
+  - Revisión de código antes de integración: todo cambio deberá someterse a
+    revisión formal por al menos un integrante del equipo distinto al autor,
+    mediante un proceso de Pull Request o Merge Request, antes de ser integrado
+    a las ramas principales.
+
+  - Uso consistente de convenciones de nomenclatura definidas en la sección 4.4
+    del presente documento.
+
+  - Documentación del código mediante palabras clave funcionales que identifiquen
+    responsabilidades: comentarios de función, docstrings y anotaciones de tipo
+    donde aplique. En Python se seguirá el estándar PEP 8; en JavaScript se
+    seguirä el estándar JSDoc cuando sea pertinente.
+
+  - Separación clara de responsabilidades: cada módulo, clase o función deberá
+    tener una responsabilidad única y bien definida. La lógica de negocio no
+    deberá mezclarse con la lógica de presentación ni con el acceso directo
+    a datos.
+
+  - Eliminación de código muerto: funciones, variables o bloques nunca ejecutados
+    deberán eliminarse antes de integrarse al repositorio. El historial de
+    versiones del repositorio cumple la función de archivo; el código comentado
+    temporalmente no deberá integrarse a las ramas principales.
+
+
+--------------------------------------------------------------------------------
+2.7 Creación de base de datos y datos iniciales
+--------------------------------------------------------------------------------
+
+Toda estructura de almacenamiento deberá crearse mediante procedimientos
+controlados, versionados y reproducibles. El sistema deberá permitir:
+
+  - Definición estructurada del modelo de datos: las entidades del sistema se
+    definirán como modelos del framework utilizado. Los cambios al esquema se
+    registrarán como archivos de migración versionados que formarán parte del
+    repositorio, garantizando que cualquier miembro del equipo pueda reproducir
+    el estado de la base de datos en cualquier momento.
+
+  - Despliegue controlado de esquemas: la aplicación de cambios al esquema se
+    realizará mediante las herramientas de migración del framework (por ejemplo,
+    el comando migrate de Django), garantizando que la base de datos refleje
+    exactamente el estado descrito en los modelos en cada entorno.
+
+  - Inicialización consistente del entorno: los datos necesarios para la
+    operación básica del sistema (como la creación inicial del superusuario
+    administrador) deberán provisionarse mediante mecanismos reproducibles
+    como fixtures o comandos de gestión personalizados.
+
+Los datos iniciales deberán limitarse a los estrictamente necesarios para la
+operación básica. No deberán existir datos de prueba, cuentas de demostración
+ni información ficticia en el entorno de producción.
+
+Las credenciales de la base de datos deberán gestionarse exclusivamente como
+variables de entorno. El repositorio deberá incluir un archivo de ejemplo
+(.env.example) que documente las variables requeridas sin incluir valores reales.
+
+
+--------------------------------------------------------------------------------
+2.8 Manejo de errores y excepciones
+--------------------------------------------------------------------------------
+
+Todo error deberá tratarse como un evento controlado del sistema. La aplicación
+deberá garantizar que los fallos internos no interrumpan abruptamente el servicio
+ni expongan información técnica sensible al usuario final.
+
+Los principios a aplicar son:
+
+  a) Respuestas de error consistentes:
+     Toda respuesta de error de la API deberá utilizar una clave estándar y
+     única para el mensaje de error, conforme al estándar del framework empleado.
+     En proyectos Django REST Framework se empleará la clave "detail". Esto
+     simplificará el manejo de errores en el cliente y evitará la exposición
+     de claves internas variables.
+
+     Ejemplo de respuesta de error correcta:
+       HTTP 400 Bad Request
+       { "detail": "El precio debe ser mayor a 0." }
+
+     Ejemplo de respuesta de error incorrecta:
+       HTTP 400 Bad Request
+       { "error": "precio invalido", "msg": "bad value" }
+
+  b) Clasificación de errores por tipo y código HTTP:
+       - 400 Bad Request: datos de entrada inválidos o incompletos.
+       - 401 Unauthorized: solicitud sin autenticación válida.
+       - 403 Forbidden: usuario autenticado sin permisos suficientes.
+       - 404 Not Found: recurso inexistente o inaccesible para el usuario
+         (también empleado para prevenir enumeración de recursos ajenos).
+       - 429 Too Many Requests: límite de tasa de solicitudes excedido.
+       - 500 Internal Server Error: fallo inesperado del servidor.
+
+  c) Registro interno de errores:
+     Los errores deberán registrarse internamente mediante el sistema de logging
+     del proyecto para permitir diagnóstico y auditoría sin exponer los detalles
+     al usuario final.
+
+  d) Ocultación de detalles técnicos:
+     Las respuestas de error no deberán incluir trazas de pila (stack traces),
+     nombres de archivos internos, consultas SQL ni ningún dato que permita
+     inferir la estructura interna del sistema.
+
+  e) Bloques de control de excepciones:
+     Las operaciones que involucren recursos externos (base de datos, servicios
+     de terceros, procesamiento de archivos) deberán envolver su lógica en
+     bloques de control de excepciones que capturen fallos inesperados y
+     devuelvan una respuesta controlada, evitando la propagación de excepciones
+     no gestionadas al cliente.
+
+
+--------------------------------------------------------------------------------
+2.9 Trazabilidad y auditoría
+--------------------------------------------------------------------------------
+
+El sistema deberá contar con un mecanismo de registro de auditoría que permita
+rastrear las operaciones de creación, modificación y eliminación realizadas
+sobre las entidades críticas del negocio.
+
+El registro de auditoría deberá capturar, para cada operación:
+
+  - La entidad afectada y el identificador del registro modificado.
+  - El tipo de operación realizada (creación, actualización o eliminación).
+  - Los valores antes y después del cambio, en el caso de actualizaciones.
+  - La fecha y hora exacta de la operación.
+  - La dirección IP de origen de la solicitud.
+  - El usuario autenticado que realizó la operación, cuando aplique.
+
+La implementación de auditoría deberá ser transversal al sistema, de forma que
+las entidades auditadas no requieran modificar su propia lógica de negocio para
+generar registros. Se recomienda el uso de señales del framework (signals en
+Django), combinadas con un middleware que capture el contexto del request de
+forma segura en entornos con múltiples hilos concurrentes.
+
+Los registros de auditoría deberán:
+
+  - Ser de solo lectura una vez creados (no editables ni eliminables desde la
+    interfaz ordinaria del sistema).
+  - Excluir campos sensibles como contraseñas de cualquier registro generado.
+  - Ser accesibles para revisión por parte de los administradores del sistema.
+
+Esta funcionalidad tiene como objetivo garantizar la no repudiación de acciones
+y facilitar la detección de operaciones anómalas o no autorizadas.
+
+
+================================================================================
+3. TECNOLOGÍAS DE PREFERENCIA
+================================================================================
+
+La selección tecnológica deberá responder a criterios de estabilidad, seguridad,
+mantenibilidad y compatibilidad con los objetivos del sistema. A continuación se
+describen las tecnologías de preferencia para el proyecto, sin perjuicio de que
+durante el desarrollo puedan incorporarse herramientas complementarias que el
+equipo considere necesarias.
+
+  - Backend: Python 3.x con el framework Django 4.2+ y Django REST Framework
+    3.14+. Se prefiere por su alta compatibilidad con librerías de inteligencia
+    artificial y procesamiento de datos, así como por la robustez de su ORM,
+    su sistema de migraciones y sus mecanismos de seguridad integrados.
+
+  - Frontend: JavaScript (ES2023) utilizando el framework Next.js 16+ basado en
+    React 19+. Se prefiere por su capacidad de renderizado del lado del servidor
+    (SSR) y generación estática (SSG), que optimiza los tiempos de carga y el
+    posicionamiento en buscadores (SEO), manteniendo la interactividad propia
+    de las interfaces modernas mediante el Virtual DOM.
+
+  - Inteligencia Artificial: API de modelos multimodales de Google Gemini para
+    el análisis avanzado de imágenes. Se espera emplear modelos de la familia
+    Gemini Flash o equivalente, capaces de procesar imágenes y devolver
+    resultados estructurados en formato JSON para la extracción automatizada
+    de metadatos de productos.
+
+  - Almacenamiento de imágenes: servicio externo Cloudinary para el alojamiento
+    y entrega optimizada de imágenes mediante CDN. Las imágenes deberán pasar
+    por validación local antes de ser enviadas al servicio externo.
+
+  - Estilos: TailwindCSS 4+ como framework de utilidades CSS para la
+    construcción de la interfaz de usuario, aunque podrá complementarse con
+    otras herramientas de componentes según las necesidades del proyecto.
+
+  - Gestión de paquetes: pip para dependencias del backend y npm para
+    dependencias del frontend.
+
+
+--------------------------------------------------------------------------------
+3.1 Lenguajes de programación
+--------------------------------------------------------------------------------
+
+Los lenguajes seleccionados deberán contar con soporte activo, ecosistema de
+herramientas moderno y mecanismos de seguridad documentados. La elección deberá
+justificarse por:
+
+  - Capacidad de mantenimiento a largo plazo.
+  - Disponibilidad de herramientas y librerías maduras.
+  - Integración con los demás componentes tecnológicos del sistema.
+
+Para el presente proyecto se prevé el uso de:
+
+  - Python 3.x para el backend, por su ecosistema de IA y ciencia de datos, la
+    madurez del framework Django y la legibilidad de su sintaxis.
+
+  - JavaScript ES2023 para el frontend, bajo el paradigma de componentes de
+    React con Next.js, aprovechando características modernas del lenguaje como
+    async/await, encadenamiento opcional y desestructuración avanzada.
+
+El código en ambos lenguajes deberá seguir las convenciones de estilo y
+nomenclatura definidas en la sección 4.4.
+
+
+--------------------------------------------------------------------------------
+3.2 Almacenamiento de datos relacionales
+--------------------------------------------------------------------------------
+
+El sistema deberá utilizar una base de datos relacional como motor de
+almacenamiento principal. Se prefiere MySQL 8.0+ por su amplia disponibilidad,
+madurez en el ecosistema Python y compatibilidad con el ORM de Django mediante
+el driver mysqlclient. No obstante, el uso de otro motor compatible (como
+PostgreSQL) queda abierto según los requerimientos del entorno de despliegue.
+
+El acceso a la base de datos deberá realizarse exclusivamente a través del ORM
+del framework, que generará consultas parametrizadas y prevendrá inyecciones SQL.
+
+La configuración de conexión se gestionará mediante las siguientes variables de
+entorno, definidas en el archivo .env del entorno de despliegue:
+
+  DB_ENGINE   — Motor de base de datos
+  DB_NAME     — Nombre de la base de datos
+  DB_USER     — Usuario de acceso
+  DB_PASSWORD — Contraseña de acceso
+  DB_HOST     — Servidor de base de datos
+  DB_PORT     — Puerto de conexión
+
+Ninguna de estas variables deberá aparecer con valores reales en el repositorio.
+
+
+--------------------------------------------------------------------------------
+3.3 Almacenamiento externo de archivos multimedia
+--------------------------------------------------------------------------------
+
+El sistema deberá emplear un servicio externo para el alojamiento y entrega de
+archivos de imagen. Se recomienda Cloudinary, que proporciona una CDN global,
+transformaciones de imagen bajo demanda y URLs seguras (HTTPS) para todos los
+recursos multimedia. Las credenciales de acceso al servicio se gestionarán
+como variables de entorno.
+
+El flujo de subida de imágenes deberá seguir obligatoriamente este orden:
+
+  1. Recepción del archivo en el servidor.
+  2. Validación de tamaño máximo permitido.
+  3. Validación del formato real del archivo (verificación binaria, no solo
+     de la extensión declarada).
+  4. Validación del contenido por mecanismos adicionales si el sistema lo
+     requiere (por ejemplo, análisis mediante IA).
+  5. Subida al servicio externo únicamente si todas las validaciones son exitosas.
+  6. Almacenamiento de la URL resultante en la base de datos.
+
+Bajo ninguna circunstancia deberá almacenarse el archivo binario de la imagen
+directamente en el servidor de aplicación ni en la base de datos.
+
+
+--------------------------------------------------------------------------------
+3.4 Inteligencia artificial
+--------------------------------------------------------------------------------
+
+El sistema deberá integrarse con una API de inteligencia artificial multimodal
+para el análisis automatizado de imágenes de productos. Se prevé el uso de la
+API de Google Gemini (modelo Flash o equivalente), seleccionado por su soporte
+para respuestas en formato JSON estructurado y su capacidad de procesar imágenes
+junto con instrucciones de texto en una misma solicitud.
+
+La integración con la API de IA deberá contemplar:
+
+  - Configuración de la clave de API mediante variable de entorno, nunca en el
+    código fuente.
+
+  - Definición de un prompt que solicite al modelo una respuesta JSON con campos
+    predefinidos relevantes para el dominio del sistema (metadatos del producto,
+    validación de contenido apropiado, etc.).
+
+  - Manejo de los casos en los que el modelo rechace o no pueda procesar la
+    imagen, devolviendo al cliente un error controlado y descriptivo.
+
+  - Control de tasa de solicitudes (rate limiting) por usuario, mediante el
+    sistema de caché del framework, para evitar el abuso del servicio y controlar
+    los costos de consumo de la API. Se recomienda un límite no mayor a 10
+    solicitudes por hora por usuario como punto de partida.
+
+  - Manejo de errores de comunicación con la API, que deberán ser capturados
+    y transformados en respuestas controladas sin exponer el error técnico
+    original al cliente.
+
+
+================================================================================
+4. ARQUITECTURA DEL SISTEMA
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1 Diseño general
+--------------------------------------------------------------------------------
+
+El proyecto se organizará como un sistema con dos capas de aplicación separadas
+y comunicadas mediante API REST:
+
+  a) Backend (framework de servidor):
+     Aplicación de servidor construida como una API REST pura que no generará
+     vistas HTML. Toda la lógica de negocio, validación, autenticación y acceso
+     a datos residirá en esta capa. Se organizará en módulos o aplicaciones con
+     responsabilidades claramente delimitadas. Entre los dominios funcionales
+     que deberá cubrir el backend se encuentran:
+
+       - Autenticación y gestión de usuarios:
+         Registro, inicio y cierre de sesión, perfil del usuario autenticado
+         y administración de cuentas por parte del rol administrador.
+
+       - Direcciones de envío:
+         CRUD completo de direcciones asociadas al usuario autenticado, con
+         soporte para marcar una dirección como predeterminada.
+
+       - Catálogo de productos:
+         Publicación, edición, eliminación y consulta de productos. El listado
+         público deberá excluir productos sin inventario disponible. Los
+         vendedores gestionarán únicamente sus propios productos.
+
+       - Carrito de compras:
+         Gestión del carrito por usuario, con validación de inventario disponible
+         y protección ante la compra de productos publicados por el propio usuario.
+
+       - Proceso de pedidos:
+         Checkout atómico con validación de stock, creación de pedido con
+         registro inmutable del precio y dirección al momento de la compra,
+         e historial de órdenes por usuario.
+
+       - Análisis de imágenes mediante IA:
+         Validación y análisis de imágenes antes de ser publicadas como
+         productos, con subida posterior a servicio externo de almacenamiento.
+
+       - Auditoría:
+         Módulo transversal que registrará automáticamente las operaciones
+         sobre las entidades del sistema sin modificar la lógica de cada módulo.
+
+  b) Frontend (framework de cliente):
+     Aplicación de cliente que consumirá la API del backend mediante un cliente
+     HTTP con gestión centralizada de autenticación. El estado de sesión se
+     manejará mediante un contexto global que inyecte el token de acceso en cada
+     solicitud. Las rutas de la aplicación deberán organizarse según el perfil
+     requerido para acceder a ellas, contemplando al menos:
+
+       - Rutas públicas: catálogo del marketplace y detalle de productos.
+       - Rutas de autenticación: inicio de sesión y registro.
+       - Rutas de vendedor: gestión de productos propios.
+       - Rutas de comprador: carrito, proceso de compra e historial de pedidos.
+       - Rutas de administrador: panel de gestión de usuarios y catálogo completo.
+
+El diseño deberá favorecer:
+
+  - Modularidad: cada dominio funcional encapsulará su propia lógica.
+  - Reutilización: los mecanismos de permisos y auditoría serán transversales.
+  - Mantenibilidad: la separación entre capas permitirá evolucionar cada una
+    de forma independiente.
+  - Escalabilidad: la arquitectura API-first permitirá integrar clientes
+    adicionales (aplicaciones móviles, integraciones externas) sin modificar
+    el backend.
+
+La organización del código seguirá principios de separación de responsabilidades
+entre componentes del sistema.
+
+
+--------------------------------------------------------------------------------
+4.2 Almacenamiento (uso de cluster y tipos de consultas)
+--------------------------------------------------------------------------------
+
+El sistema deberá estructurar el acceso a datos de forma eficiente, consistente
+y controlada mediante los mecanismos provistos por el motor de almacenamiento
+seleccionado. La arquitectura de almacenamiento deberá permitir:
+
+  a) Acceso concurrente controlado:
+     Las operaciones críticas susceptibles de condiciones de carrera, como la
+     actualización de inventario ante compras simultáneas, deberán ejecutarse
+     dentro de transacciones atómicas con bloqueo a nivel de fila. Esto garantiza
+     que el inventario no sea sobrevendido en escenarios de alta concurrencia.
+
+  b) Consistencia de datos mediante transacciones atómicas:
+     Los procesos de múltiples pasos, como la creación de un pedido que implica
+     varias operaciones sobre distintas entidades, deberán encapsularse en
+     transacciones atómicas. Si algún paso falla, todos los cambios de la
+     transacción deberán revertirse automáticamente.
+
+  c) Integridad histórica mediante registros inmutables:
+     Al completarse transacciones críticas (como una compra), el sistema deberá
+     almacenar copias de los datos relevantes en el momento exacto de la
+     operación (precio, dirección de entrega, etc.). Esto garantiza que el
+     historial sea inmutable e independiente de modificaciones futuras a los
+     datos relacionados.
+
+  d) Capacidad de crecimiento:
+     Las relaciones entre entidades deberán modelarse con políticas de cascada
+     explícitamente definidas. Los campos con alta frecuencia de consulta o
+     filtrado deberán diseñarse considerando la posibilidad de indexado adicional
+     conforme el volumen de datos crezca.
+
+
+--------------------------------------------------------------------------------
+4.3 Tareas externas (fuera de línea o programadas)
+--------------------------------------------------------------------------------
+
+El sistema podrá ejecutar procesos fuera del flujo principal de interacción del
+usuario cuando la naturaleza del procesamiento lo requiera. Estos procesos podrán
+incluir ejecución asíncrona de operaciones pesadas y tareas programadas.
+
+En el contexto del presente proyecto, el proceso de integración con servicios
+de inteligencia artificial externos constituirá la operación de mayor latencia.
+Las siguientes consideraciones deberán aplicarse a este tipo de tareas:
+
+  - Las validaciones locales (formato, tamaño) deberán ejecutarse antes de
+    invocar el servicio externo, descartando solicitudes inválidas sin consumir
+    recursos del servicio.
+
+  - Deberá establecerse un límite de tasa de solicitudes por usuario para
+    controlar el consumo del servicio externo y evitar abusos.
+
+  - Los tiempos de espera (timeouts) hacia servicios externos deberán definirse
+    explícitamente para evitar que un servicio externo lento bloquee el servidor
+    indefinidamente.
+
+Las tareas externas deberán:
+
+  - Ejecutarse de forma controlada, con manejo explícito de errores y tiempos
+    de espera.
+  - Registrarse para efectos de auditoría cuando involucren modificaciones a
+    entidades del sistema.
+
+
+--------------------------------------------------------------------------------
+4.4 Estándares de codificación y nomenclatura
+--------------------------------------------------------------------------------
+
+Para garantizar que el código fuente del proyecto sea legible, uniforme y
+fácilmente transferible entre cualquier miembro del equipo, es estrictamente
+obligatorio apegarse a las siguientes convenciones de nomenclatura en todos
+los entornos (frontend y backend):
+
+  a) Clases y Modelos (Python/JavaScript):
+     Se deberá utilizar la notación UpperCamelCase (PascalCase). Cada palabra
+     iniciará con mayúscula y no se usarán espacios ni guiones.
+
+     Ejemplos:
+       class UserSerializer
+       class ProductModel
+       class IsVendorOrAdmin
+       function AuthContext
+
+  b) Variables, funciones y métodos:
+     En JavaScript se empleará la notación lowerCamelCase. En Python se seguirá
+     el estándar PEP 8 con snake_case para funciones y métodos. Ningún
+     identificador deberá contener tildes ni caracteres especiales.
+
+     Ejemplos en JavaScript:
+       function calculateTotalPrice(items)
+       const getAccessToken = () => { ... }
+       let accessToken
+
+     Ejemplos en Python (PEP 8):
+       def get_queryset(self)
+       def validate_password(value)
+       def perform_create(self, serializer)
+
+  c) Constantes:
+     Las variables globales inmutables y las constantes de configuración deberán
+     escribirse completamente en mayúsculas, separando las palabras con guiones
+     bajos (UPPER_SNAKE_CASE).
+
+     Ejemplos:
+       MAX_SIZE_MB = 10
+       ALLOWED_FORMATS = ["JPEG", "PNG"]
+       const API_BASE_URL = "http://localhost:8000/api"
+
+  d) Base de datos:
+     Los nombres de tablas y columnas deberán escribirse en minúsculas y
+     separarse con guiones bajos (snake_case) para mantener compatibilidad
+     con el ORM y los estándares de SQL.
+
+     Ejemplos de convención correcta:
+       numero_de_orden, precio_unitario, fecha_creacion, codigo_postal
+
+  e) Componentes de React (Frontend):
+     Los componentes deberán nombrarse en PascalCase y sus archivos tendrán
+     la extensión .jsx. Los hooks personalizados utilizarán el prefijo "use"
+     seguido de un nombre en PascalCase.
+
+     Ejemplos:
+       AuthContext.jsx, Navbar.jsx
+       useAuth(), useCart()
+
+  f) Rutas y endpoints de la API:
+     Los segmentos de ruta deberán escribirse en minúsculas con guiones medios
+     como separador, conforme a las convenciones de URL semánticas.
+     Ver sección 6.3 para la especificación completa.
+
+  g) Variables de entorno:
+     Deberán utilizar exclusivamente UPPER_SNAKE_CASE.
+
+     Ejemplos:
+       SECRET_KEY, DB_PASSWORD, GEMINI_API_KEY, CLOUDINARY_API_SECRET
+
+
+================================================================================
+5. USO DE REPOSITORIOS DE INTEGRACIÓN
+================================================================================
+
+La administración del código fuente deberá realizarse exclusivamente mediante
+repositorios centralizados que permitan trazabilidad completa del historial
+de cambios.
+
+
+--------------------------------------------------------------------------------
+5.1 Capacidad de almacenamiento
+--------------------------------------------------------------------------------
+
+El repositorio oficial deberá almacenar todo artefacto necesario para reproducir
+el sistema, incluyendo código fuente, archivos de configuración (sin valores
+sensibles), migraciones de base de datos, archivos de ejemplo de variables de
+entorno y documentación técnica.
+
+Los siguientes elementos deberán excluirse del repositorio mediante el archivo
+.gitignore:
+
+  - Archivos .env con credenciales reales.
+  - Directorios de dependencias (venv/, node_modules/).
+  - Archivos de caché y compilados (__pycache__/, .next/).
+  - Archivos locales del sistema operativo (.DS_Store, Thumbs.db).
+  - Logs y archivos de base de datos locales.
+
+
+--------------------------------------------------------------------------------
+5.2 Uso de ramas
+--------------------------------------------------------------------------------
+
+El proyecto deberá implementar una estrategia de ramificación que separe
+claramente:
+
+  - main: rama principal con código estable, probado y listo para presentación
+    o despliegue. No deberá modificarse directamente mediante commits.
+
+  - develop: rama de integración continua donde convergen las funcionalidades
+    completadas antes de promoverse a main.
+
+  - feature/nombre-de-funcionalidad: ramas de trabajo individual o por tarea,
+    creadas desde develop y fusionadas de regreso a develop una vez completadas
+    y revisadas.
+
+Las ramas protegidas (main, develop) no deberán modificarse directamente. Todo
+cambio deberá ingresar mediante un Pull Request con al menos una revisión
+aprobada por otro integrante del equipo.
+
+
+--------------------------------------------------------------------------------
+5.3 Reglas de commit
+--------------------------------------------------------------------------------
+
+Todo cambio deberá registrarse con mensajes descriptivos que permitan identificar
+el propósito, el alcance funcional y la naturaleza de la modificación.
+
+Es de carácter obligatorio emplear la siguiente convención de mensajes de commit,
+con un prefijo específico entre corchetes seguido de una descripción clara:
+
+  [FEAT]     Incorporación de nuevas funcionalidades.
+             Ejemplo: [FEAT] Implementación del endpoint de checkout con
+                      validación de inventario concurrente
+
+  [FIX]      Corrección de errores dentro del código.
+             Ejemplo: [FIX] Corrección de validación de token expirado en
+                      el interceptor de solicitudes
+
+  [REFACTOR] Reestructuración de código sin cambio funcional.
+             Ejemplo: [REFACTOR] Extracción de lógica de permisos a módulo
+                      compartido
+
+  [DOCS]     Actualización de documentación técnica.
+             Ejemplo: [DOCS] Actualización de guía de desarrollo con
+                      especificación de rutas de la API
+
+  [TEST]     Adición o corrección de pruebas automatizadas.
+             Ejemplo: [TEST] Casos de prueba para protección IDOR en recursos
+                      de usuario
+
+  [CONFIG]   Cambios en configuración, variables de entorno o dependencias.
+             Ejemplo: [CONFIG] Configuración de CORS para el entorno local
+
+  [STYLE]    Cambios de formato o estilo visual sin lógica funcional.
+             Ejemplo: [STYLE] Ajuste de espaciado en componente de navegación
+
+Los mensajes deberán redactarse en español. El prefijo irá siempre en
+mayúsculas y entre corchetes. La descripción deberá ser suficientemente clara
+para que cualquier integrante del equipo comprenda el alcance del cambio sin
+necesidad de revisar el código.
+
+
+================================================================================
+6. DESARROLLO Y CONSUMO DE APIs
+================================================================================
+
+--------------------------------------------------------------------------------
+6.1 Integración de servicios (REST)
+--------------------------------------------------------------------------------
+
+La comunicación entre el cliente y el servidor deberá realizarse mediante
+interfaces definidas, documentadas y coherentes. Toda interfaz deberá especificar:
+
+  - Métodos HTTP permitidos (GET, POST, PUT, PATCH, DELETE)
+  - Formato de intercambio de datos: JSON en todos los endpoints
+  - Estructura de respuesta consistente
+  - Manejo de errores mediante la clave estándar "detail"
+
+A continuación se presentan los endpoints previstos para el sistema, organizados
+por dominio funcional. Esta especificación podrá ajustarse durante el desarrollo
+conforme se definan los detalles de implementación.
+
+AUTENTICACIÓN
+  POST   /api/auth/register/         Registro de nuevo usuario (público)
+  POST   /api/auth/login/            Inicio de sesión (público)
+  POST   /api/auth/logout/           Cierre de sesión e invalidación de token
+  POST   /api/auth/refresh/          Renovación de token de acceso
+
+USUARIOS
+  GET    /api/users/me/              Consultar perfil del usuario autenticado
+  PATCH  /api/users/me/              Actualizar perfil propio
+  GET    /api/users/                 Listar todos los usuarios (solo admin)
+  POST   /api/users/vendor/          Crear cuenta de vendedor (solo admin)
+  GET    /api/users/<id>/            Obtener usuario por ID (solo admin)
+  PUT    /api/users/<id>/            Actualizar usuario completo (solo admin)
+  PATCH  /api/users/<id>/            Actualizar usuario parcial (solo admin)
+  DELETE /api/users/<id>/            Eliminar usuario (solo admin)
+
+DIRECCIONES DE ENVÍO
+  GET    /api/users/addresses/           Listar direcciones propias
+  POST   /api/users/addresses/           Crear nueva dirección
+  GET    /api/users/addresses/<id>/      Consultar dirección por ID
+  PUT    /api/users/addresses/<id>/      Actualizar dirección completa
+  PATCH  /api/users/addresses/<id>/      Actualizar dirección parcial
+  DELETE /api/users/addresses/<id>/      Eliminar dirección
+
+PRODUCTOS (MARKETPLACE PÚBLICO)
+  GET    /api/products/               Listar productos con stock (público)
+  GET    /api/products/<id>/          Detalle de producto con stock (público)
+  GET    /api/products/categories/    Listar categorías disponibles (público)
+
+PRODUCTOS (OPERACIONES DE VENDEDOR)
+  POST   /api/products/create/        Crear nuevo producto (vendor/admin)
+  GET    /api/products/my/            Listar productos propios (vendor/admin)
+  GET    /api/products/<id>/vendor-detail/   Ver detalle propio sin filtro de stock
+  PATCH  /api/products/<id>/edit/     Editar producto propio (vendor/admin)
+  DELETE /api/products/<id>/delete/   Eliminar producto propio (vendor/admin)
+
+PRODUCTOS (PANEL ADMINISTRADOR)
+  GET    /api/products/admin/         Listar todos los productos (solo admin)
+
+CARRITO
+  GET    /api/carts/                  Consultar carrito del usuario autenticado
+  POST   /api/carts/add/              Agregar producto al carrito
+  PATCH  /api/carts/items/<id>/       Actualizar cantidad de un ítem
+  DELETE /api/carts/items/<id>/       Eliminar ítem del carrito
+
+PEDIDOS
+  POST   /api/orders/checkout/        Procesar compra (checkout)
+  GET    /api/orders/                 Listar pedidos del usuario autenticado
+  GET    /api/orders/<numero>/        Consultar detalle de un pedido
+
+ANÁLISIS DE IMÁGENES (IA)
+  POST   /api/ai/analyze/             Analizar imagen y cargar al servicio externo
+
+Ejemplo de endpoint correcto:
+  GET /api/products/<id>/
+
+Ejemplo de endpoint incorrecto:
+  POST /obtenerDatosDelProducto?id=15
+
+
+--------------------------------------------------------------------------------
+6.2 Autenticación de servicios
+--------------------------------------------------------------------------------
+
+Toda solicitud hacia recursos protegidos de la API deberá incluir un token de
+acceso JWT válido en la cabecera de autorización, conforme al esquema Bearer Token.
+
+Ejemplo de solicitud con credenciales válidas:
+  GET /api/orders/
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+Ejemplo de solicitud rechazada por ausencia de credenciales (respuesta 401):
+  GET /api/orders/
+  (sin cabecera Authorization)
+
+Los únicos endpoints que no requerirán autenticación son los explícitamente
+definidos como públicos: listado y detalle de productos, listado de categorías,
+registro e inicio de sesión.
+
+Los endpoints protegidos responderán con HTTP 401 ante solicitudes sin
+autenticación válida, y con HTTP 403 cuando el usuario autenticado no cuente
+con permisos suficientes para el recurso solicitado.
+
+
+--------------------------------------------------------------------------------
+6.3 Interoperabilidad (especificación de rutas)
+--------------------------------------------------------------------------------
+
+Las rutas de acceso a servicios deberán definirse mediante convenciones uniformes
+y consistentes que faciliten la comprensión, el mantenimiento y la evolución del
+sistema. La estructura de rutas deberá ser predecible, semántica y coherente en
+todo el proyecto.
+
+Reglas de diseño de rutas:
+
+  1. Las rutas representarán sustantivos en plural que identifiquen el recurso,
+     no verbos ni acciones.
+
+     Correcto:   GET /api/products/
+     Incorrecto: GET /api/obtenerProductos/
+
+  2. Los identificadores de recursos específicos se incluirán en la ruta y no
+     como parámetros de consulta.
+
+     Correcto:   GET /api/products/42/
+     Incorrecto: GET /api/products/?id=42
+
+  3. Las sub-operaciones sobre un recurso se expresarán como sub-rutas del mismo.
+
+     Correcto:   POST /api/products/create/
+     Correcto:   POST /api/orders/checkout/
+     Incorrecto: POST /api/crearProducto/
+
+  4. Los segmentos de ruta estarán en minúsculas con guiones medios como
+     separador entre palabras.
+
+     Correcto:   /api/users/vendor-detail/
+     Incorrecto: /api/users/VendorDetail/
+
+  5. Todas las rutas de la API deberán estar prefijadas con /api/ para
+     distinguirlas del contenido servido por el frontend.
+
+  6. Las rutas terminarán con barra diagonal (trailing slash) conforme al
+     comportamiento predeterminado de Django.
+
+Ejemplo de ruta correcta:
+  PUT /api/products/<id>/edit/
+
+Ejemplo de ruta incorrecta:
+  /prueba/Borrar-Producto-Ahora
+
+
+--------------------------------------------------------------------------------
+6.4 Uso del idioma en el código
+--------------------------------------------------------------------------------
+
+El código fuente deberá emplear nomenclatura técnica consistente en un único
+idioma para todas las estructuras de programación, incluyendo variables,
+funciones, clases, componentes, nombres de campo en modelos y claves de los
+objetos JSON de la API.
+
+Los identificadores técnicos se definirán en idioma inglés para mantener
+compatibilidad con los estándares internacionales de desarrollo y facilitar la
+colaboración entre personas de distintos orígenes.
+
+Los mensajes orientados al usuario final (textos de interfaz, mensajes de error
+visibles al usuario, etiquetas de formularios) podrán presentarse en el idioma
+definido para la interfaz del sistema.
+
+Ejemplo de nomenclatura correcta:
+  function calculateTotalPrice(items) {
+      return items.reduce((sum, item) => sum + item.price, 0);
+  }
+
+Ejemplo de nomenclatura incorrecta:
+  function calcularTotalPrice(listaDeItems) {
+      return listaDeItems.reduce((suma, item) => suma + item.price, 0);
+  }
+
+Esta regla deberá aplicarse a:
+  - Nombres de campo en modelos y tablas de base de datos
+  - Claves en los objetos JSON de requests y responses de la API
+  - Nombres de variables, funciones y métodos en todo el código fuente
+  - Nombres de clases, componentes y hooks
+  - Parámetros de consulta (query parameters) de la API
+  - Variables de entorno
+
+
+================================================================================
+7. ASEGURAMIENTO DE LA CALIDAD DE SOFTWARE
+================================================================================
+
+--------------------------------------------------------------------------------
+7.1 Plan de pruebas
+--------------------------------------------------------------------------------
+
+El proyecto deberá contar con un plan de pruebas documentado que establezca la
+estrategia general para verificar el cumplimiento funcional del sistema.
+
+El plan de pruebas definirá los dominios funcionales que deberán evaluarse, así
+como los criterios de validación aplicables a cada uno. Para el presente proyecto
+se prevé la evaluación de los siguientes dominios:
+
+  a) Autenticación y gestión de sesiones:
+     Verificación del flujo completo de registro, inicio y cierre de sesión.
+     Validación del comportamiento ante credenciales inválidas, tokens expirados
+     y solicitudes no autenticadas.
+
+  b) Control de acceso basado en roles:
+     Verificación de que cada endpoint responde correctamente a solicitudes de
+     usuarios con distintos roles (vendor, admin) y a solicitudes no autenticadas.
+     Esto incluye confirmar que los recursos protegidos rechazan accesos no
+     autorizados con los códigos HTTP apropiados.
+
+  c) Gestión de usuarios y perfiles:
+     Verificación de las operaciones del panel administrativo: creación, listado,
+     edición y eliminación de usuarios, así como la actualización del perfil
+     propio por parte del usuario autenticado.
+
+  d) Gestión del catálogo de productos:
+     Verificación del ciclo de vida de un producto: creación, edición, consulta
+     y eliminación. Validación de las reglas de negocio: restricciones de precio,
+     límites en el número de imágenes y reglas de edición conforme al estado
+     del producto.
+
+  e) Filtrado y búsqueda en el marketplace público:
+     Verificación del filtrado por categoría, búsqueda por texto, ordenamiento
+     por precio y filtrado por rango de precios. Verificación de que únicamente
+     los productos con inventario disponible son visibles en el catálogo público.
+
+  f) Carrito de compras:
+     Verificación del flujo de agregar, modificar y eliminar ítems. Validación
+     del control de inventario disponible y de las restricciones de negocio
+     sobre la compra de recursos propios.
+
+  g) Proceso de compra y pedidos:
+     Verificación del flujo completo de checkout: validación de inventario,
+     creación del pedido, descuento de existencias y consulta del historial.
+
+  h) Protección contra acceso indirecto a objetos (IDOR):
+     Verificación de que ningún usuario puede acceder, modificar ni eliminar
+     recursos pertenecientes a otro usuario mediante la manipulación directa de
+     identificadores en las rutas.
+
+  i) Procesamiento de imágenes y análisis de IA:
+     Verificación de las validaciones de formato, tamaño y contenido de
+     imágenes, así como del control de tasa de solicitudes.
+
+Para cada dominio se definirán casos de prueba que cubran al menos el flujo
+exitoso esperado, los casos de borde con datos inválidos y las restricciones
+de seguridad y control de acceso.
+
+
+--------------------------------------------------------------------------------
+7.2 Diseño de pruebas
+--------------------------------------------------------------------------------
+
+Las pruebas deberán diseñarse a partir de los comportamientos esperados del
+sistema, sus reglas operativas y sus requisitos funcionales. Cada caso de prueba
+deberá describir:
+
+  - Precondición: estado del sistema antes de ejecutar la prueba (usuario
+    autenticado, datos previos necesarios, etc.).
+  - Acción: la solicitud o interacción que se realiza.
+  - Resultado esperado: código de respuesta HTTP y, cuando aplique, estructura
+    del cuerpo de la respuesta.
+  - Criterio de validación: condición que determina si la prueba pasó o falló.
+
+Las pruebas del backend se implementarán como pruebas de integración utilizando
+las herramientas de prueba del framework (APIClient en Django REST Framework),
+que permiten simular solicitudes HTTP completas sin necesidad de un servidor
+en ejecución.
+
+Las pruebas no deberán depender de datos externos ni de servicios de terceros en
+tiempo real; las dependencias externas deberán simularse (mock) cuando sea
+necesario para garantizar la reproducibilidad de los resultados.
+
+El diseño de pruebas se integrará dentro del plan de pruebas del proyecto y su
+ejecución formará parte del proceso de integración continua.
+
+
+--------------------------------------------------------------------------------
+7.3 Reporte de resultados
+--------------------------------------------------------------------------------
+
+Toda ejecución de pruebas deberá registrarse para permitir seguimiento y control
+del estado funcional del sistema. Los resultados de cada prueba se documentarán
+indicando:
+
+  - Módulo o dominio funcional evaluado.
+  - Número total de casos de prueba ejecutados.
+  - Número de casos exitosos (PASS) y fallidos (FAIL).
+  - Para cada fallo: descripción de la condición de falla, comportamiento
+    observado y comportamiento esperado.
+  - Fecha y responsable de la ejecución.
+
+El estado de las pruebas deberá mantenerse en verde (todos los casos pasando)
+antes de cualquier integración hacia las ramas principales. Ninguna funcionalidad
+que provoque fallos en pruebas preexistentes podrá integrarse al repositorio
+sin resolver previamente el fallo.
+
+El registro de resultados se integrará dentro del documento del plan de pruebas
+del proyecto y se actualizará tras cada ciclo de pruebas significativo.
+
+
+================================================================================
+FIN DEL DOCUMENTO
+================================================================================

@@ -41,7 +41,7 @@ export const setupInterceptors = (getAccessToken, handleTokenRefresh, handleLogo
       }
       return config;
     },
-    (error) => Promise.reject(error)
+    (error) => { throw error; }
   );
 
   // Response Interceptor: Detección 401 y Auto-Refresh
@@ -55,7 +55,7 @@ export const setupInterceptors = (getAccessToken, handleTokenRefresh, handleLogo
 
         // Evita reintentar de forma infinita peticiones al endpoint de login/refresh
         if (originalRequest.url.includes('/auth/login') || originalRequest.url.includes('/auth/refresh/')) {
-          return Promise.reject(error);
+          throw error;
         }
 
         if (isRefreshing) {
@@ -68,7 +68,7 @@ export const setupInterceptors = (getAccessToken, handleTokenRefresh, handleLogo
               return api(originalRequest);
             })
             .catch((err) => {
-              return Promise.reject(err);
+              throw err;
             });
         }
 
@@ -93,13 +93,13 @@ export const setupInterceptors = (getAccessToken, handleTokenRefresh, handleLogo
           // Si falla el refresh, fallan todas las encoladas y hacemos logout
           processQueue(refreshError, null);
           handleLogout();
-          return Promise.reject(refreshError);
+          throw refreshError;
         } finally {
           isRefreshing = false;
         }
       }
 
-      return Promise.reject(error);
+      throw error;
     }
   );
 };

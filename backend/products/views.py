@@ -124,10 +124,15 @@ class VendorProductListView(generics.ListAPIView):
 
 class ProductUpdateView(generics.UpdateAPIView):
     # Actualiza un producto. Solo el dueño o un admin pueden hacerlo.
-    queryset = Product.objects.all()
     serializer_class = ProductUpdateSerializer
     permission_classes = [IsOwnerOrAdmin]
     lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == user.__class__.Role.ADMIN:
+            return Product.objects.all()
+        return Product.objects.filter(seller=user)
 
     def perform_update(self, serializer):
         product = serializer.save()
@@ -139,9 +144,14 @@ class ProductUpdateView(generics.UpdateAPIView):
 
 class ProductDeleteView(generics.DestroyAPIView):
     # Elimina un producto. Solo el dueño o un admin pueden hacerlo.
-    queryset = Product.objects.all()
     permission_classes = [IsOwnerOrAdmin]
     lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == user.__class__.Role.ADMIN:
+            return Product.objects.all()
+        return Product.objects.filter(seller=user)
 
     def perform_destroy(self, instance):
         logger.info(

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import Link from 'next/link';
+import PropTypes from 'prop-types';
 
 // Formatea dirección con los campos en inglés (post-refactoring)
 function formatAddress(addr) {
@@ -80,11 +81,10 @@ export default function AddressSelector({ onSelect }) {
                     <label
                         key={addr.id}
                         htmlFor={`address-${addr.id}`}
-                        className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-4 transition shadow-sm hover:shadow-md ${
-                            isSelected
-                                ? 'border-emerald-500/50 bg-emerald-500/5'
-                                : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
-                        }`}
+                        className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-4 transition shadow-sm hover:shadow-md ${isSelected
+                            ? 'border-emerald-500/50 bg-emerald-500/5'
+                            : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+                            }`}
                     >
                         <input
                             id={`address-${addr.id}`}
@@ -118,3 +118,7 @@ export default function AddressSelector({ onSelect }) {
         </div>
     );
 }
+
+AddressSelector.propTypes = {
+    onSelect: PropTypes.func.isRequired,
+};

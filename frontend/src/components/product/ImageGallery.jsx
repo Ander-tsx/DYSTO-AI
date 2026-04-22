@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import PropTypes from 'prop-types';
 
 function ChevronLeft({ size = 20 }) {
   return (
@@ -12,6 +13,10 @@ function ChevronLeft({ size = 20 }) {
   );
 }
 
+ChevronLeft.propTypes = {
+  size: PropTypes.number,
+};
+
 function ChevronRight({ size = 20 }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
@@ -21,6 +26,10 @@ function ChevronRight({ size = 20 }) {
     </svg>
   );
 }
+
+ChevronRight.propTypes = {
+  size: PropTypes.number,
+};
 
 function ZoomIcon({ size = 18 }) {
   return (
@@ -35,6 +44,10 @@ function ZoomIcon({ size = 18 }) {
   );
 }
 
+ZoomIcon.propTypes = {
+  size: PropTypes.number,
+};
+
 function XIcon({ size = 22 }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
@@ -45,6 +58,10 @@ function XIcon({ size = 22 }) {
     </svg>
   );
 }
+
+XIcon.propTypes = {
+  size: PropTypes.number,
+};
 
 /**
  * ImageGallery
@@ -80,8 +97,8 @@ export default function ImageGallery({ mainImage, images = [], title = 'Producto
       if (e.key === 'ArrowRight') next();
       if (e.key === 'Escape') setLightboxOpen(false);
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    globalThis.addEventListener('keydown', handler);
+    return () => globalThis.removeEventListener('keydown', handler);
   }, [lightboxOpen, prev, next]);
 
   // Bloquear scroll body cuando lightbox está abierto
@@ -101,6 +118,7 @@ export default function ImageGallery({ mainImage, images = [], title = 'Producto
 
   const activeImage = allImages[activeIndex];
   const hasMultiple = allImages.length > 1;
+  const hasError = imgError[activeImage];
 
   return (
     <>
@@ -111,17 +129,17 @@ export default function ImageGallery({ mainImage, images = [], title = 'Producto
         <div className="relative overflow-hidden rounded-2xl border group" style={{ borderColor: '#1f1f1f', background: '#0d0d0d' }}>
           {/* Aspect ratio wrapper */}
           <div className="relative w-full" style={{ paddingBottom: '75%' }}>
-            {!imgError[activeImage] ? (
+            {hasError ? (
+              <div className="absolute inset-0 flex items-center justify-center text-[#444] font-mono text-sm">
+                Error al cargar imagen
+              </div>
+            ) : (
               <img
                 src={activeImage}
                 alt={`${title} — imagen ${activeIndex + 1}`}
                 className="absolute inset-0 w-full h-full object-contain transition-opacity duration-300"
                 onError={() => setImgError((prev) => ({ ...prev, [activeImage]: true }))}
               />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-[#444] font-mono text-sm">
-                Error al cargar imagen
-              </div>
             )}
           </div>
 
@@ -173,7 +191,7 @@ export default function ImageGallery({ mainImage, images = [], title = 'Producto
           <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
             {allImages.map((img, idx) => (
               <button
-                key={idx}
+                key={img}
                 aria-label={`Ver imagen ${idx + 1}`}
                 aria-current={idx === activeIndex}
                 onClick={() => goTo(idx)}
@@ -188,17 +206,17 @@ export default function ImageGallery({ mainImage, images = [], title = 'Producto
                   opacity: idx === activeIndex ? 1 : 0.6,
                 }}
               >
-                {!imgError[img] ? (
+                {hasError ? (
+                  <div className="w-full h-full flex items-center justify-center text-[#444] text-[10px] font-mono">
+                    ERR
+                  </div>
+                ) : (
                   <img
                     src={img}
                     alt={`Miniatura ${idx + 1}`}
                     className="w-full h-full object-cover"
                     onError={() => setImgError((prev) => ({ ...prev, [img]: true }))}
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[#444] text-[10px] font-mono">
-                    ERR
-                  </div>
                 )}
               </button>
             ))}
@@ -208,18 +226,24 @@ export default function ImageGallery({ mainImage, images = [], title = 'Producto
 
       {/* Lightbox */}
       {lightboxOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
+        <dialog
+          open
           aria-label="Visor de imagen ampliada"
           className="fixed inset-0 z-[9999] flex items-center justify-center"
           style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)' }}
-          onClick={() => setLightboxOpen(false)}
         >
-          {/* Image wrapper — stop propagation so clicks inside don't close */}
+          {/* Invisible backdrop button — closes lightbox when clicking outside the image */}
+          <button
+            type="button"
+            aria-label="Cerrar visor"
+            className="absolute inset-0 w-full h-full cursor-default"
+            style={{ background: 'transparent', border: 'none' }}
+            onClick={() => setLightboxOpen(false)}
+          />
+
+          {/* Image wrapper */}
           <div
             className="relative max-w-4xl max-h-[90vh] w-full mx-4 flex items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
           >
             <img
               src={activeImage}
@@ -266,11 +290,13 @@ export default function ImageGallery({ mainImage, images = [], title = 'Producto
             <div
               className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2 rounded-xl"
               style={{ background: 'rgba(10,10,10,0.85)', border: '1px solid #222' }}
-              onClick={(e) => e.stopPropagation()}
+              role="toolbar"
+              aria-label="Miniaturas de imagen"
+              onMouseDown={(e) => e.stopPropagation()}
             >
               {allImages.map((img, idx) => (
                 <button
-                  key={idx}
+                  key={img}
                   onClick={() => goTo(idx)}
                   className="rounded-md overflow-hidden transition-all duration-200"
                   style={{
@@ -285,8 +311,14 @@ export default function ImageGallery({ mainImage, images = [], title = 'Producto
               ))}
             </div>
           )}
-        </div>
+        </dialog>
       )}
     </>
   );
 }
+
+ImageGallery.propTypes = {
+  mainImage: PropTypes.string.isRequired,
+  images: PropTypes.array,
+  title: PropTypes.string,
+};

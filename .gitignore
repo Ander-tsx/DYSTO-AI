@@ -79,3 +79,7 @@ Thumbs.db
 
 # Deployment / Vercel
 .vercel/
+
+# SonarQube
+.scannerwork/
+coverage/

@@ -4,11 +4,11 @@ import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import { notify } from '@/utils/notify';
+import CustomSelect from '@/components/ui/CustomSelect.jsx';
 import {
   Upload,
   Sparkles,
   X,
-  Image as ImageIcon,
   Tag,
   DollarSign,
   FileText,
@@ -16,75 +16,12 @@ import {
   LayoutGrid,
   Send,
   Loader2,
-  ChevronDown,
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 
-// ── Custom Select ─────────────────────────────────────────────────────────────
-
-function CustomSelect({ value, onChange, options, placeholder, label, id, icon: Icon }) {
-  const [open, setOpen] = useState(false);
-  const ref = React.useRef(null);
-  const selected = options.find(o => o.value === value);
-
-  React.useEffect(() => {
-    function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    if (open) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [open]);
-
-  return (
-    <div className="space-y-1.5" ref={ref}>
-      {label && (
-        <label htmlFor={id} className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          {Icon && <Icon size={12} />}
-          {label}
-        </label>
-      )}
-      <div className="relative">
-        <button
-          id={id}
-          type="button"
-          onClick={() => setOpen(v => !v)}
-          className="flex items-center justify-between gap-2 w-full h-11 px-4 rounded-xl text-sm font-medium bg-zinc-900 border border-zinc-800 text-zinc-200 hover:border-zinc-700 focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10 transition-all"
-        >
-          <span className={selected?.value ? 'text-white' : 'text-zinc-600'}>
-            {selected?.label || placeholder}
-          </span>
-          <ChevronDown size={14} className={`transition-transform duration-200 text-zinc-500 ${open ? 'rotate-180' : ''}`} />
-        </button>
-
-        {open && (
-          <div
-            className="absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden z-50"
-            style={{
-              background: 'rgba(18,18,18,0.98)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.7)',
-            }}
-          >
-            {options.map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => { onChange(opt.value); setOpen(false); }}
-                className={`flex items-center w-full px-4 py-2.5 text-sm text-left transition-colors ${value === opt.value
-                    ? 'text-[#e0ff4f] bg-[#e0ff4f]/8'
-                    : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-                  }`}
-              >
-                {opt.label}
-                {value === opt.value && <span className="ml-auto text-[#e0ff4f]">✓</span>}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+// Custom button class for the form-style select (taller, darker background)
+const FORM_SELECT_BTN =
+  'flex items-center justify-between gap-2 w-full h-11 px-4 rounded-xl text-sm font-medium bg-zinc-900 border border-zinc-800 text-zinc-200 hover:border-zinc-700 focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10 transition-all';
 
 // ── AI Badge ──────────────────────────────────────────────────────────────────
 
@@ -112,17 +49,32 @@ function Field({ label, children, aiSuggested = false, icon: Icon }) {
   );
 }
 
+Field.propTypes = {
+  label: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
+  aiSuggested: PropTypes.bool,
+  icon: PropTypes.func,
+};
+
 const inputClass = 'w-full h-11 px-4 rounded-xl text-sm bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10 transition-all';
 const textareaClass = 'w-full px-4 py-3 rounded-xl text-sm bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#e0ff4f]/40 focus:ring-2 focus:ring-[#e0ff4f]/10 transition-all resize-none';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: 'Selecciona una categoría' },
-  { value: 'Modelos de IA', label: 'Modelos de IA' },
-  { value: 'Prompts', label: 'Prompts' },
-  { value: 'Herramientas', label: 'Herramientas' },
-  { value: 'Datasets', label: 'Datasets' },
-  { value: 'APIs', label: 'APIs' },
-  { value: 'Cursos', label: 'Cursos' },
+  { value: 'Electrónica', label: 'Electrónica' },
+  { value: 'Ropa y Moda', label: 'Ropa y Moda' },
+  { value: 'Hogar y Jardín', label: 'Hogar y Jardín' },
+  { value: 'Deportes y Fitness', label: 'Deportes y Fitness' },
+  { value: 'Salud y Belleza', label: 'Salud y Belleza' },
+  { value: 'Juguetes y Juegos', label: 'Juguetes y Juegos' },
+  { value: 'Libros y Educación', label: 'Libros y Educación' },
+  { value: 'Automotriz', label: 'Automotriz' },
+  { value: 'Alimentos y Bebidas', label: 'Alimentos y Bebidas' },
+  { value: 'Arte y Manualidades', label: 'Arte y Manualidades' },
+  { value: 'Mascotas', label: 'Mascotas' },
+  { value: 'Música e Instrumentos', label: 'Música e Instrumentos' },
+  { value: 'Herramientas y Ferretería', label: 'Herramientas y Ferretería' },
+  { value: 'Viajes y Turismo', label: 'Viajes y Turismo' },
   { value: 'Otro', label: 'Otro' },
 ];
 
@@ -295,7 +247,8 @@ export default function NewProductPage() {
           <div className="lg:col-span-2 space-y-5">
 
             {/* Drop Zone */}
-            <div
+            <button
+              type="button"
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
               onClick={() => fileInputRef.current?.click()}
@@ -319,16 +272,16 @@ export default function NewProductPage() {
                 onChange={e => handleFiles(e.target.files)}
                 className="hidden"
               />
-            </div>
+            </button>
 
             {/* Image Previews */}
             {images.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {images.map((img, i) => (
-                  <div key={i} className="relative group rounded-xl overflow-hidden border border-zinc-800 aspect-square">
+                  <div key={img} className="relative group rounded-xl overflow-hidden border border-zinc-800 aspect-square">
                     <img
                       src={URL.createObjectURL(img)}
-                      alt={`Preview ${i + 1}`}
+                      alt={`Preview ${img}`}
                       className="w-full h-full object-cover"
                     />
                     {i === 0 && (
@@ -415,6 +368,7 @@ export default function NewProductPage() {
                 placeholder="Selecciona una categoría"
                 label={`Categoría${aiSuggested ? ' ✨' : ''}`}
                 icon={LayoutGrid}
+                buttonClassName={FORM_SELECT_BTN}
               />
 
               {/* Price + Stock */}

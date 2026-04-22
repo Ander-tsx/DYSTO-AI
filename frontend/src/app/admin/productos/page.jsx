@@ -3,7 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import AdminLayout from "../../../components/layout/AdminLayout";
 import Badge from "../../../components/ui/Badge";
+import Button from "../../../components/ui/Button";
 import api from "@/lib/axios";
+import { Trash2, Power, PowerOff } from "lucide-react";
 
 export default function AdminProductsPage() {
     const [products, setProducts] = useState([]);
@@ -12,23 +14,46 @@ export default function AdminProductsPage() {
     const [filterState, setFilterState] = useState("Todos");
     const [search, setSearch] = useState("");
 
-    useEffect(() => {
-        // Conectado a API real: GET /api/products/admin/
-        const fetchProducts = async () => {
-            setLoading(true);
-            setError('');
-            try {
-                const res = await api.get('/products/admin/');
-                setProducts(res.data.results || res.data);
-            } catch (err) {
-                setError(err.response?.data?.detail || 'No se pudieron cargar los productos.');
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchProducts = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await api.get('/products/admin/');
+            setProducts(res.data.results || res.data);
+        } catch (err) {
+            setError(err.response?.data?.detail || 'No se pudieron cargar los productos.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchProducts();
     }, []);
+
+    const toggleProductStatus = async (id, currentStatus) => {
+        try {
+            await api.patch(`/products/${id}/edit/`, {
+                is_active: !currentStatus
+            });
+            // Update UI locally
+            setProducts(prev => prev.map(p => p.id === id ? { ...p, is_active: !currentStatus } : p));
+        } catch (err) {
+            const msg = err.response?.data?.detail || 'Error al cambiar el estado del producto.';
+            setError(msg);
+        }
+    };
+
+    const deleteProduct = async (id) => {
+        if (!confirm('¿Estás seguro de eliminar este producto permanentemente?')) return;
+        try {
+            await api.delete(`/products/${id}/delete/`);
+            setProducts(prev => prev.filter(p => p.id !== id));
+        } catch (err) {
+            const msg = err.response?.data?.detail || 'Error al eliminar el producto.';
+            setError(msg);
+        }
+    };
 
     const filteredProducts = useMemo(() => {
         return products.filter((product) => {
@@ -45,6 +70,95 @@ export default function AdminProductsPage() {
             return matchState && matchSearch;
         });
     }, [filterState, search, products]);
+
+    const tableContent = (() => {
+        if (loading) {
+            return Array.from({ length: 5 }, (_, rowIdx) => (
+                <tr key={`row-${rowIdx}`}>
+                    {Array.from({ length: 7 }, (_, colIdx) => (
+                        <td key={`col-${rowIdx}-${colIdx}`} className="px-5 py-4">
+                            <div className="h-4 animate-pulse rounded bg-zinc-800" />
+                        </td>
+                    ))}
+                </tr>
+            ));
+        }
+
+        if (filteredProducts.length === 0) {
+            return (
+                <tr>
+                    <td colSpan={7} className="px-5 py-8 text-center text-sm text-zinc-400">
+                        No hay productos para mostrar.
+                    </td>
+                </tr>
+            );
+        }
+
+        return filteredProducts.map((product) => (
+            <tr key={product.id} className="transition-colors hover:bg-zinc-900/80">
+                <td className="whitespace-nowrap px-5 py-4">
+                    <div className="h-10 w-10 overflow-hidden rounded-lg bg-zinc-800 border border-zinc-700">
+                        {product.main_image ? (
+                            <img
+                                src={product.main_image}
+                                alt={product.title}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <div className="h-full w-full flex items-center justify-center text-[10px] text-zinc-600">
+                                N/A
+                            </div>
+                        )}
+                    </div>
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-zinc-100 max-w-[200px] truncate">
+                    {product.title}
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-400">
+                    {product.seller_email || '-'}
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm font-mono text-zinc-300">
+                    ${Number(product.price || 0).toFixed(2)}
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-300">
+                    {product.stock}
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4">
+                    <Badge variant={product.is_active ? "success" : "error"}>
+                        {product.is_active ? "Activo" : "Inactivo"}
+                    </Badge>
+                </td>
+
+                <td className="whitespace-nowrap px-5 py-4">
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1.5 text-zinc-400 hover:text-cyan-400"
+                            onClick={() => toggleProductStatus(product.id, product.is_active)}
+                            title={product.is_active ? "Desactivar" : "Activar"}
+                        >
+                            {product.is_active ? <PowerOff size={16} /> : <Power size={16} />}
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1.5 text-zinc-400 hover:text-rose-400"
+                            onClick={() => deleteProduct(product.id)}
+                            title="Eliminar"
+                        >
+                            <Trash2 size={16} />
+                        </Button>
+                    </div>
+                </td>
+            </tr>
+        ));
+    })();
 
     return (
         <AdminLayout>
@@ -101,7 +215,7 @@ export default function AdminProductsPage() {
                         <table className="min-w-full divide-y divide-zinc-800">
                             <thead className="bg-zinc-900/70">
                                 <tr>
-                                    {["Imagen", "Título", "Vendedor", "Precio", "Stock", "Estado"].map(col => (
+                                    {["Imagen", "Título", "Vendedor", "Precio", "Stock", "Estado", "Acciones"].map(col => (
                                         <th key={col} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
                                             {col}
                                         </th>
@@ -110,60 +224,7 @@ export default function AdminProductsPage() {
                             </thead>
 
                             <tbody className="divide-y divide-zinc-800">
-                                {loading ? (
-                                    [...Array(5)].map((_, i) => (
-                                        <tr key={i}>
-                                            {[...Array(6)].map((__, j) => (
-                                                <td key={j} className="px-5 py-4">
-                                                    <div className="h-4 animate-pulse rounded bg-zinc-800" />
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))
-                                ) : filteredProducts.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-5 py-8 text-center text-sm text-zinc-400">
-                                            No hay productos para mostrar.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredProducts.map((product) => (
-                                        <tr key={product.id} className="transition-colors hover:bg-zinc-900/80">
-                                            <td className="whitespace-nowrap px-5 py-4">
-                                                <div className="h-10 w-10 overflow-hidden rounded-lg bg-zinc-800 border border-zinc-700">
-                                                    {product.main_image ? (
-                                                        <img
-                                                            src={product.main_image}
-                                                            alt={product.title}
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="h-full w-full flex items-center justify-center text-[10px] text-zinc-600">
-                                                            N/A
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-zinc-100 max-w-[200px] truncate">
-                                                {product.title}
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-400">
-                                                {product.seller_email || '-'}
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm font-mono text-zinc-300">
-                                                ${Number(product.price || 0).toFixed(2)}
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-zinc-300">
-                                                {product.stock}
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-4">
-                                                <Badge variant={product.is_active ? "success" : "error"}>
-                                                    {product.is_active ? "Activo" : "Inactivo"}
-                                                </Badge>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                {tableContent}
                             </tbody>
                         </table>
                     </div>

@@ -109,7 +109,6 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         # Solo verificamos límite si viene additional_images o main_image en la actualización
         if 'additional_images' in attrs or 'main_image' in attrs:
-            current_main = attrs.get('main_image', self.instance.main_image)
             current_add = attrs.get('additional_images', self.instance.additional_images)
             if not isinstance(current_add, list):
                 raise serializers.ValidationError({"additional_images": "Debe ser una lista."})

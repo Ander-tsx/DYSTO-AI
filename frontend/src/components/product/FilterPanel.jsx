@@ -3,68 +3,11 @@
 // FilterPanel is now embedded directly in the marketplace and vendor pages.
 // This file is kept for backward compatibility / future use.
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
-import { ChevronDown, SlidersHorizontal, X } from 'lucide-react';
-
-function CustomSelect({ value, onChange, options, placeholder, id }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  const selected = options.find(o => o.value === value);
-
-  useEffect(() => {
-    function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    if (open) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [open]);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        id={id}
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="flex items-center justify-between gap-2 w-full h-10 px-3 rounded-lg text-sm font-medium bg-zinc-800/60 border border-zinc-700/60 text-zinc-200 hover:border-zinc-600 transition-all"
-      >
-        <span className={selected ? 'text-white' : 'text-zinc-500'}>
-          {selected?.label || placeholder}
-        </span>
-        <ChevronDown size={14} className={`transition-transform duration-200 text-zinc-500 ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {open && (
-        <div
-          className="absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden z-50"
-          style={{
-            background: 'rgba(18,18,18,0.98)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.7)',
-          }}
-        >
-          {options.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => { onChange(opt.value); setOpen(false); }}
-              className={`flex items-center w-full px-4 py-2.5 text-sm text-left transition-colors ${
-                value === opt.value
-                  ? 'text-[#e0ff4f] bg-[#e0ff4f]/8'
-                  : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              {opt.label}
-              {value === opt.value && <span className="ml-auto text-[#e0ff4f]">✓</span>}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+import { SlidersHorizontal } from 'lucide-react';
+import CustomSelect from '@/components/ui/CustomSelect.jsx';
 
 export default function FilterPanel() {
   const router = useRouter();
@@ -79,7 +22,7 @@ export default function FilterPanel() {
   useEffect(() => {
     api.get('/products/categories/')
       .then(res => setCategories(res.data || []))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Auto-apply on change with debounce
@@ -127,9 +70,10 @@ export default function FilterPanel() {
       <CustomSelect id="filter-panel-sort" value={sort} onChange={setSort} options={sortOptions} placeholder="Ordenar por" />
 
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Precio (MXN)</label>
+        <label htmlFor="filter-panel-min-price" className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Precio (MXN)</label>
         <div className="flex gap-2">
           <input
+            id="filter-panel-min-price"
             type="number"
             placeholder="Min"
             value={minPrice}

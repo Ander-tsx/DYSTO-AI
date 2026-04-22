@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * ConfirmModal — Modal de confirmación premium para DystoAI.
@@ -100,11 +101,10 @@ export default function ConfirmModal({
   const s = variantStyles[variant] || variantStyles.danger;
 
   return (
-    <div
+    <dialog
+      open
       className="fixed inset-0 z-[200] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
-      role="dialog"
-      aria-modal="true"
       aria-labelledby="confirm-modal-title"
     >
       {/* Backdrop click */}
@@ -213,6 +213,18 @@ export default function ConfirmModal({
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
+
+ConfirmModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onConfirm: PropTypes.func.isRequired,
+  title: PropTypes.string,
+  message: PropTypes.string,
+  confirmText: PropTypes.string,
+  cancelText: PropTypes.string,
+  variant: PropTypes.oneOf(['danger', 'warning', 'info']),
+  loading: PropTypes.bool,
+};

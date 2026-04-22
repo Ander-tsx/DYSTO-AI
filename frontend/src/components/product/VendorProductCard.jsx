@@ -6,6 +6,7 @@ import { notify } from '@/utils/notify';
 import api from '@/lib/axios';
 import { Edit2, Trash2, Package } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import PropTypes from 'prop-types';
 
 export default function VendorProductCard({ product, onDelete, viewMode = 'row' }) {
   const { id, title, price, stock, is_active, main_image, units_sold } = product;
@@ -29,19 +30,28 @@ export default function VendorProductCard({ product, onDelete, viewMode = 'row' 
 
   const isActive = is_active;
   const pausedByStock = !isActive && stock === 0;
-  // Un producto pausado por stock con ventas puede editarse (solo stock)
-  // Si no tiene ventas y stock=0, también puede editarse normalmente
-  const canEdit = true; // siempre editable para reponer stock
 
-  const EditButton = ({ className, children }) => (
-    <Link
-      href={`/products/${id}/edit`}
-      className={className}
-    >
-      {children}
-    </Link>
-  );
+  let statusBadge;
 
+  if (isActive) {
+    statusBadge = (
+      <span className="px-2 py-1 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[10px] font-bold">
+        Activo
+      </span>
+    );
+  } else if (pausedByStock) {
+    statusBadge = (
+      <span className="px-2 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-[10px] font-bold">
+        Sin stock
+      </span>
+    );
+  } else {
+    statusBadge = (
+      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full text-[10px] font-bold">
+        Pausado
+      </span>
+    );
+  }
   // ── CARD view ───────────────────────────────────────────────────────────────
   if (viewMode === 'card') {
     return (
@@ -71,13 +81,7 @@ export default function VendorProductCard({ product, onDelete, viewMode = 'row' 
             )}
             {/* Status badge */}
             <div className="absolute top-3 right-3">
-              {isActive ? (
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[10px] font-bold">Activo</span>
-              ) : pausedByStock ? (
-                <span className="px-2 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-[10px] font-bold">Sin stock</span>
-              ) : (
-                <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full text-[10px] font-bold">Pausado</span>
-              )}
+              {statusBadge}
             </div>
           </div>
 
@@ -98,7 +102,7 @@ export default function VendorProductCard({ product, onDelete, viewMode = 'row' 
             )}
 
             <div className="mt-auto flex gap-2">
-              <EditButton className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border border-zinc-700 text-zinc-300 hover:border-[#e0ff4f]/40 hover:text-[#e0ff4f] transition-all">
+              <EditButton id={id} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border border-zinc-700 text-zinc-300 hover:border-[#e0ff4f]/40 hover:text-[#e0ff4f] transition-all">
                 <Edit2 size={13} /> Editar
               </EditButton>
               <button
@@ -149,13 +153,7 @@ export default function VendorProductCard({ product, onDelete, viewMode = 'row' 
             <span>Stock: <span className={stock > 0 ? 'text-green-400 font-bold' : 'text-red-400 font-bold'}>{stock}</span></span>
             <span>Vendidos: <span className="text-white font-bold">{units_sold || 0}</span></span>
             <div>
-              {isActive ? (
-                <span className="px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-full text-xs font-bold">Activo</span>
-              ) : pausedByStock ? (
-                <span className="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-xs font-bold">Pausado (Stock 0)</span>
-              ) : (
-                <span className="px-2 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-full text-xs font-bold">Pausado</span>
-              )}
+              {statusBadge}
             </div>
           </div>
           {pausedByStock && units_sold > 0 && (
@@ -166,7 +164,7 @@ export default function VendorProductCard({ product, onDelete, viewMode = 'row' 
         </div>
 
         <div className="flex sm:flex-col gap-3 shrink-0">
-          <EditButton className="flex items-center justify-center gap-1.5 border border-zinc-700 text-zinc-300 hover:border-[#e0ff4f]/40 hover:text-[#e0ff4f] px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+          <EditButton id={id} className="flex items-center justify-center gap-1.5 border border-zinc-700 text-zinc-300 hover:border-[#e0ff4f]/40 hover:text-[#e0ff4f] px-4 py-2 rounded-lg text-sm font-semibold transition-all">
             <Edit2 size={14} /> Editar
           </EditButton>
           <button
@@ -180,3 +178,32 @@ export default function VendorProductCard({ product, onDelete, viewMode = 'row' 
     </>
   );
 }
+
+VendorProductCard.propTypes = {
+  product: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    title: PropTypes.string.isRequired,
+    price: PropTypes.number.isRequired,
+    stock: PropTypes.number.isRequired,
+    is_active: PropTypes.bool.isRequired,
+    main_image: PropTypes.string.isRequired,
+    units_sold: PropTypes.number.isRequired,
+  }).isRequired,
+  onDelete: PropTypes.func,
+  viewMode: PropTypes.oneOf(['row', 'card']),
+};
+
+const EditButton = ({ id, className, children }) => (
+  <Link
+    href={`/products/${id}/edit`}
+    className={className}
+  >
+    {children}
+  </Link>
+);
+
+EditButton.propTypes = {
+  id: PropTypes.number.isRequired,
+  className: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
+};

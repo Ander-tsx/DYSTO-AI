@@ -2,8 +2,10 @@ from django.conf import settings
 from django.db import models
 
 from products.models import Product
+from logbook.decorators import audit_log
 
 
+@audit_log
 class Cart(models.Model):
     # Carrito de compras asociado 1-a-1 con el usuario.
 
@@ -23,6 +25,7 @@ class Cart(models.Model):
         return f'Carrito de {self.user.email}'
 
 
+@audit_log
 class CartItem(models.Model):
     # Elemento individual dentro de un carrito.
 

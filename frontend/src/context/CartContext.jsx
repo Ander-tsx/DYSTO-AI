@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import api from '@/lib/axios';
 import { useAuth } from './AuthContext.jsx';
+import PropTypes from 'prop-types';
 
 const CartContext = createContext();
 
@@ -78,22 +79,35 @@ export const CartProvider = ({ children }) => {
         }
     }, [isAuthenticated, loading]);
 
+    const contextValue = useMemo(() => ({
+        cartItems,
+        cartTotal,
+        cartCount,
+        fetchCart,
+        addItem,
+        updateItem,
+        removeItem,
+        clearCart,
+    }), [
+        cartItems,
+        cartTotal,
+        cartCount,
+        fetchCart,
+        addItem,
+        updateItem,
+        removeItem,
+        clearCart,
+    ]);
+
     return (
-        <CartContext.Provider
-            value={{
-                cartItems,
-                cartTotal,
-                cartCount,
-                fetchCart,
-                addItem,
-                updateItem,
-                removeItem,
-                clearCart,
-            }}
-        >
+        <CartContext.Provider value={contextValue}>
             {children}
         </CartContext.Provider>
     );
+};
+
+CartProvider.propTypes = {
+    children: PropTypes.node.isRequired,
 };
 
 export const useCart = () => {

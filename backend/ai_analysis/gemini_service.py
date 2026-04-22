@@ -38,6 +38,16 @@ def analyze_product_image(image_bytes, mime_type):
             "is_valid_object": true
         }
 
+        IMPORTANTE:
+        - El campo "suggested_price" debe expresarse en Pesos Mexicanos (MXN).
+          Considera los precios de mercado típicos de México para el tipo de producto analizado.
+        - El campo "category" debe ser exactamente uno de los siguientes valores:
+          Electrónica, Ropa y Moda, Hogar y Jardín, Deportes y Fitness, Salud y Belleza,
+          Juguetes y Juegos, Libros y Educación, Automotriz, Alimentos y Bebidas,
+          Arte y Manualidades, Mascotas, Música e Instrumentos, Herramientas y Ferretería,
+          Viajes y Turismo, Otro.
+          Elige la categoría más apropiada para el producto detectado.
+
         Si la imagen contiene personas o animales, deja los campos de producto vacíos
         y marca is_valid_object como false.
         """
@@ -45,8 +55,16 @@ def analyze_product_image(image_bytes, mime_type):
         response = model.generate_content([prompt, image_part])
 
         text = response.text.strip()
-        text = re.sub(r"^```(?:json)?\s*", "", text)
-        text = re.sub(r"\s*```$", "", text)
+
+        text = text.strip()
+
+        if text.startswith("```"):
+            text = text.split("\n", 1)[-1]
+
+        if text.endswith("```"):
+            text = text.rsplit("```", 1)[0]
+
+        text = text.strip()
 
         data = json.loads(text)
 
